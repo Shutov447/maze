@@ -1,0 +1,26 @@
+.btn-reset {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    box-shadow: none;
+    outline: none;
+    cursor: default;
+
+    &:hover,
+    &:focus,
+    &:active,
+    &:focus:hover,
+    &:focus:active,
+    &:focus-visible {
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        outline: none;
+        transform: none;
+    }
+}
