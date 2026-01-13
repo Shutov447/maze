@@ -1,20 +1,23 @@
-import { Game } from './game.js';
+import { Game } from 'Game';
 import { MazeController, MazeModel, MazeView } from 'Maze';
 import { PlayerController, PlayerModel, PlayerView } from 'Player';
 
-const main = () => {
-    const playerModel = new PlayerModel();
-    const playerView = new PlayerView();
-    const player = new PlayerController(playerModel, playerView);
+class App {
+    constructor(private readonly game: Game) {}
 
-    const mazeModel = new MazeModel(6, 6, 0.4, 20);
-    const mazeView = new MazeView();
-    const maze = new MazeController(mazeModel, mazeView, player);
+    main() {
+        this.game.start();
+    }
+}
 
-    const game = new Game(maze, player);
-    playerModel.attach(game);
-    mazeModel.attach(game);
-    game.start();
-};
+const mazeModel = new MazeModel(6, 6, 0.4);
+const mazeView = new MazeView(20);
+const maze = new MazeController(mazeModel, mazeView);
 
-main();
+const playerModel = new PlayerModel();
+const playerView = new PlayerView();
+const player = new PlayerController(playerModel, playerView);
+
+const game = new Game(maze, player);
+
+new App(game).main();

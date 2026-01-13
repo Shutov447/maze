@@ -1,36 +1,49 @@
-import { IMazeState, MazeModel, MazeView } from 'Maze';
-import { PlayerController } from 'Player';
-import { cellsEqual } from 'Utils';
-import { PlayerElem, Cell } from 'Types';
+import { MediatorComponent, IRenderer, IRenderable } from 'Types';
+import { Cell, IMazeState, MazeEventType, MazeModel, MazeView } from 'Maze';
+import { MovementDirection } from 'Player';
 
-export class MazeController {
+export class MazeController
+    extends MediatorComponent<MazeController, MazeEventType>
+    implements IRenderer
+{
     constructor(
         private readonly model: MazeModel,
-        private readonly view: MazeView,
-        private readonly player: PlayerController
-    ) {}
-
-    create(): void {
-        this.model.generate();
-        const state = this.model.getState();
-
-        this.view.render(state, this.createPlayer(state));
+        private readonly view: MazeView
+    ) {
+        super();
     }
 
-    private createPlayer(mazeState: IMazeState): PlayerElem {
-        return this.player.create(
-            mazeState.map,
-            this.getRandomSpawnCell(),
-            mazeState.cellSizePx
+    create(): void {
+        this.model.attach(this.view);
+        this.model.generate();
+
+        this.mediator?.send(this, MazeEventType.Generate);
+    }
+
+    getContainer(): HTMLElement {
+        return this.view.container;
+    }
+
+    addRenderable(renderable: IRenderable) {
+        renderable.renderTo(this.getContainer());
+    }
+
+    isPassage(direction: MovementDirection, cell: Cell): boolean {
+        return this.model.isPassage(direction, cell);
+    }
+
+    getCellSizePx() {
+        return this.view.cellSizePx;
+    }
+
+    getRandomPassageCell(...exceptions: Cell[]): Cell {
+        return this.model.findRandomPassageCell(
+            this.model.getState().finishCell,
+            ...exceptions
         );
     }
 
-    private getRandomSpawnCell(): Cell {
-        let spawnCell = this.model.findRandomPassageCell();
-
-        while (cellsEqual(spawnCell, this.model.getState().finishCell))
-            spawnCell = this.model.findRandomPassageCell();
-
-        return spawnCell;
+    getState(): IMazeState {
+        return this.model.getState();
     }
 }

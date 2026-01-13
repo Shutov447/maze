@@ -1,11 +1,15 @@
+import { ISubject, IObserver, INotifyEvent } from 'Types';
 import {
-    MazeStructure,
     Cell,
+    MazeStructure,
+    MazeEvent,
+    MazeEventType,
     MazeRow,
     CellState,
-    ISubject,
-    IObserver,
-} from 'Types';
+    Wall,
+} from 'Maze';
+import { MovementDirection } from 'Player';
+import { cellsEqual } from 'Utils';
 
 export interface IMazeState {
     rows: number;
@@ -13,7 +17,6 @@ export interface IMazeState {
     finishCell: Cell;
     map: MazeStructure;
     wallSpawnChance: number;
-    cellSizePx: number;
 }
 
 export class MazeModel implements ISubject {
@@ -24,19 +27,16 @@ export class MazeModel implements ISubject {
         finishCell: [0, 0],
         map: [],
         wallSpawnChance: 0,
-        cellSizePx: 0,
     };
 
     constructor(
         private readonly rows: number,
         private readonly cols: number,
-        private readonly wallSpawnChance: number,
-        private readonly cellSizePx: number
+        private readonly wallSpawnChance: number
     ) {
         this.state.rows = rows;
         this.state.cols = cols;
         this.state.wallSpawnChance = wallSpawnChance;
-        this.state.cellSizePx = cellSizePx;
     }
 
     generate() {
@@ -44,7 +44,7 @@ export class MazeModel implements ISubject {
         this.addBorders();
         this.generateFinish();
 
-        this.notify();
+        this.notify(new MazeEvent(MazeEventType.Generate));
     }
 
     private fillMap(): void {
@@ -80,31 +80,56 @@ export class MazeModel implements ISubject {
         this.state.finishCell = this.findRandomPassageCell();
     }
 
-    findRandomPassageCell(): Cell {
+    findRandomPassageCell(...exceptions: Cell[]): Cell {
         let row = 0;
         let col = 0;
 
-        while (this.state.map[row][col] === 1) {
+        const isExCell = (cell: Cell) =>
+            exceptions.find((exCell) => cellsEqual(exCell, cell));
+
+        const wall: Wall = 1;
+
+        let cell: Cell = [row, col];
+        let cellState: CellState = this.state.map[row][col];
+
+        while (cellState === wall || isExCell(cell)) {
             row = Math.round(Math.random() * (this.state.rows - 1));
             col = Math.round(Math.random() * (this.state.cols - 1));
+
+            cell = [row, col];
+            cellState = this.state.map[row][col];
         }
 
-        return [row, col];
+        return cell;
     }
 
-    getState(): IMazeState {
-        return Object.assign({}, this.state);
+    notify(eventType: INotifyEvent): void {
+        this.observers.forEach((observer) => observer.update(this, eventType));
     }
-
     attach(observer: IObserver): void {
         this.observers.add(observer);
     }
-
     detach(observer: IObserver): void {
         this.observers.delete(observer);
     }
 
-    notify(): void {
-        this.observers.forEach((observer) => observer.update(this));
+    isPassage(direction: MovementDirection, cell: Cell): boolean {
+        const map = this.state.map;
+        const row = cell[0];
+        const col = cell[1];
+        const wall: Wall = 1;
+
+        const passageFinder = {
+            Left: () => map[row][col - 1] !== wall,
+            Down: () => map[row + 1][col] !== wall,
+            Right: () => map[row][col + 1] !== wall,
+            Up: () => map[row - 1][col] !== wall,
+        };
+
+        return passageFinder[direction]();
+    }
+
+    getState(): IMazeState {
+        return structuredClone(this.state);
     }
 }

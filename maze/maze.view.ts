@@ -1,20 +1,40 @@
-import { IMazeState } from 'Maze';
+import { IObserver, ISubject, INotifyEvent } from 'Types';
+import {
+    IMazeState,
+    MazeModel,
+    MazeEvent,
+    MazeEventType,
+    Cell,
+    MazeElem,
+    MazeRow,
+    MazeStructure,
+} from 'Maze';
 import { generateId } from 'Utils';
-import { Cell, MazeElem, MazeRow, MazeStructure, PlayerElem } from 'Types';
 
-export class MazeView {
-    private readonly container: MazeElem = document.createElement('div');
+export class MazeView implements IObserver {
+    readonly container: MazeElem = document.createElement('div');
 
-    render(state: IMazeState, playerElem: PlayerElem) {
-        this.clear();
-        this.addContainer();
-        this.addMaze(state.map, state.cellSizePx);
-        this.addFinish(state.finishCell);
-        this.addCellElem(playerElem);
+    constructor(readonly cellSizePx: number) {}
+
+    update(subject: ISubject, event: INotifyEvent) {
+        if (
+            subject instanceof MazeModel &&
+            event instanceof MazeEvent &&
+            event.type === MazeEventType.Generate
+        ) {
+            this.render(subject.getState());
+        }
     }
 
-    addCellElem(elem: HTMLElement) {
-        this.container.appendChild(elem);
+    private render(state: IMazeState) {
+        this.clear();
+        this.addContainer();
+        this.addMaze(state.map, this.cellSizePx);
+        this.addFinish(state.finishCell);
+    }
+
+    private clear() {
+        this.container.innerHTML = '';
     }
 
     private addContainer() {
@@ -49,7 +69,7 @@ export class MazeView {
         finishElem && (finishElem.style.backgroundColor = 'green');
     }
 
-    private clear() {
-        this.container.innerHTML = '';
+    addCellElem(elem: HTMLElement) {
+        this.container.appendChild(elem);
     }
 }
