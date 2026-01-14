@@ -35,8 +35,8 @@ export class PlayerController
         this.mediator?.send(this, PlayerEventType.Generate);
     }
 
-    renderTo(container: HTMLElement): void {
-        this.view.render(container);
+    addTo(container: HTMLElement): void {
+        this.view.renderTo(container);
     }
 
     move(direction: MovementDirection): void {

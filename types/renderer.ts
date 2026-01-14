@@ -3,5 +3,5 @@ export interface IRenderer {
 }
 
 export interface IRenderable {
-    renderTo(container: HTMLElement): void;
+    addTo(container: HTMLElement): void;
 }

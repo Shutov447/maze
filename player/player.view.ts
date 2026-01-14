@@ -59,7 +59,7 @@ export class PlayerView implements IObserver {
         elemMover[lastMove]();
     }
 
-    render(container: HTMLElement): void {
+    renderTo(container: HTMLElement): void {
         container.appendChild(this.elem);
     }
 

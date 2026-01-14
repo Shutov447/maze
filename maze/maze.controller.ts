@@ -25,7 +25,7 @@ export class MazeController
     }
 
     addRenderable(renderable: IRenderable) {
-        renderable.renderTo(this.getContainer());
+        renderable.addTo(this.getContainer());
     }
 
     isPassage(direction: MovementDirection, cell: Cell): boolean {
