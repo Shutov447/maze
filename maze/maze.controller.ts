@@ -15,7 +15,7 @@ export class MazeController
 
     create(): void {
         this.model.attach(this.view);
-        this.model.generate();
+        this.model.make();
 
         this.mediator?.send(this, MazeEventType.Generate);
     }

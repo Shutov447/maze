@@ -47,7 +47,7 @@ export class MazeView implements IObserver {
     }
 
     private addRow(row: MazeRow, rowNumber: number, cellSize: number) {
-        row.forEach((cell, cellNumber) => {
+        row.forEach((cellState, cellNumber) => {
             const cellElem = document.createElement('div');
 
             cellElem.id = generateId(rowNumber, cellNumber);
@@ -58,7 +58,7 @@ export class MazeView implements IObserver {
 
             cellElem.style.width = cellSize + 'px';
             cellElem.style.height = cellSize + 'px';
-            cellElem.style.backgroundColor = cell ? 'black' : 'white';
+            cellElem.style.backgroundColor = cellState ? 'white' : 'black';
 
             this.container.appendChild(cellElem);
         });

@@ -10,7 +10,7 @@ class App {
     }
 }
 
-const mazeModel = new MazeModel(6, 6, 0.4);
+const mazeModel = new MazeModel(20, 20);
 const mazeView = new MazeView(20);
 const maze = new MazeController(mazeModel, mazeView);
 

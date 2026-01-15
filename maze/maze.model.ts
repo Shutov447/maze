@@ -4,9 +4,11 @@ import {
     MazeStructure,
     MazeEvent,
     MazeEventType,
-    MazeRow,
     CellState,
     Wall,
+    Passage,
+    Visited,
+    IMazeSibling,
 } from 'Maze';
 import { MovementDirection } from 'Player';
 import { cellsEqual } from 'Utils';
@@ -16,7 +18,6 @@ export interface IMazeState {
     cols: number;
     finishCell: Cell;
     map: MazeStructure;
-    wallSpawnChance: number;
 }
 
 export class MazeModel implements ISubject {
@@ -26,54 +27,169 @@ export class MazeModel implements ISubject {
         rows: 0,
         finishCell: [0, 0],
         map: [],
-        wallSpawnChance: 0,
     };
+    private readonly WALL: Wall = 0;
+    private readonly PASSAGE: Passage = 1;
+    private readonly VISITED: Visited = 0.5;
 
-    constructor(
-        private readonly rows: number,
-        private readonly cols: number,
-        private readonly wallSpawnChance: number
-    ) {
-        this.state.rows = rows;
+    private localMaze: number[][] = [];
+
+    constructor(private readonly cols: number, private readonly rows: number) {
+        this.rows = rows % 2 === 1 ? rows + 1 : rows;
+        this.cols = cols % 2 === 1 ? cols + 1 : cols;
         this.state.cols = cols;
-        this.state.wallSpawnChance = wallSpawnChance;
+        this.state.rows = rows;
     }
 
-    generate() {
-        this.fillMap();
-        this.addBorders();
+    make() {
+        this.fillMazeByPassage();
+        this.mazeToGrid();
+        this.generate(...this.generateRandomCellOnMazeGrid());
+        this.toPassageOrWall();
+        this.state.map = this.getBorderedMazeStructure();
         this.generateFinish();
+        this.localMaze = [];
 
         this.notify(new MazeEvent(MazeEventType.Generate));
     }
 
-    private fillMap(): void {
-        for (let i = 0; i < this.state.rows; i++) {
-            this.state.map.push(this.getFilledMazeRow());
+    private fillMazeByPassage() {
+        for (let row = 0; row < this.rows; row++) {
+            const mazeRow = [];
+
+            for (let col = 0; col < this.cols; col++) {
+                mazeRow.push(this.PASSAGE);
+            }
+
+            this.localMaze.push(mazeRow);
         }
     }
 
-    private getFilledMazeRow(): MazeRow {
-        const currentRow: MazeRow = [];
+    private mazeToGrid() {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                if (row % 2 === 1 || col % 2 === 1) {
+                    this.localMaze[row][col] = this.WALL;
+                }
 
-        for (let i = 0; i < this.state.cols; i++) {
-            const cellState = +(
-                +Math.random().toFixed(1) < this.state.wallSpawnChance
-            ) as CellState;
-
-            currentRow.push(cellState);
+                const isBorder =
+                    row === 0 ||
+                    col === 0 ||
+                    row === this.rows - 1 ||
+                    col === this.cols - 1;
+                if (isBorder) {
+                    this.localMaze[row][col] = this.VISITED;
+                }
+            }
         }
-
-        return currentRow;
     }
 
-    private addBorders(): void {
-        const map = this.state.map;
+    private generateRandomCellOnMazeGrid(): Cell {
+        let row = Math.floor(Math.random() * this.rows);
+        let col = Math.floor(Math.random() * this.cols);
 
-        map[0] = map[0].fill(1);
-        map[map.length - 1] = map.at(0)!.fill(1);
-        map.forEach((row) => (row[0] = 1));
-        map.forEach((row) => (row[row.length - 1] = 1));
+        row = Math.min(
+            Math.max(row % 2 === 1 ? row + 1 : row + 2, 2),
+            this.rows - 2
+        );
+        col = Math.min(
+            Math.max(col % 2 === 1 ? col + 1 : col + 2, 2),
+            this.cols - 2
+        );
+
+        return [row, col];
+    }
+
+    private readonly wayByCell: Cell[] = [];
+    private generate(row: number, col: number) {
+        this.localMaze[row][col] = this.VISITED;
+
+        const notVisitedSiblings = this.getNotVisitedSiblings(row, col);
+
+        if (!notVisitedSiblings.length) {
+            if (!this.wayByCell.length) return;
+
+            this.wayByCell.pop();
+            const lastStep = this.wayByCell.at(-1);
+            lastStep && this.generate(...lastStep);
+
+            return;
+        }
+
+        const notVisitedSibling =
+            notVisitedSiblings[
+                Math.floor(Math.random() * notVisitedSiblings.length)
+            ];
+        notVisitedSibling.carvePassage.bind(this)(
+            notVisitedSibling.row,
+            notVisitedSibling.col
+        );
+        this.localMaze[notVisitedSibling.row][notVisitedSibling.col] =
+            this.VISITED;
+        this.wayByCell.push([row, col]);
+
+        this.generate(notVisitedSibling.row, notVisitedSibling.col);
+    }
+
+    private getNotVisitedSiblings(row: number, col: number): IMazeSibling[] {
+        return [
+            {
+                type: 'Left',
+                state: this.localMaze[row]?.[col - 2] || this.VISITED,
+                row,
+                col: col - 2,
+                carvePassage: (row: number, col: number) =>
+                    (this.localMaze[row][col + 1] = this.PASSAGE),
+            },
+            {
+                type: 'Down',
+                state: this.localMaze[row + 2]?.[col] || this.VISITED,
+                row: row + 2,
+                col,
+                carvePassage: (row: number, col: number) =>
+                    (this.localMaze[row - 1][col] = this.PASSAGE),
+            },
+            {
+                type: 'Right',
+                state: this.localMaze[row]?.[col + 2] || this.VISITED,
+                row,
+                col: col + 2,
+                carvePassage: (row: number, col: number) =>
+                    (this.localMaze[row][col - 1] = this.PASSAGE),
+            },
+            {
+                type: 'Up',
+                state: this.localMaze[row - 2]?.[col] || this.VISITED,
+                row: row - 2,
+                col,
+                carvePassage: (row: number, col: number) =>
+                    (this.localMaze[row + 1][col] = this.PASSAGE),
+            },
+        ].filter(
+            (direction) => direction.state === this.PASSAGE
+        ) as IMazeSibling[];
+    }
+
+    private toPassageOrWall() {
+        this.localMaze = this.localMaze.map((row) =>
+            row.map((col) => (col === this.VISITED ? 1 : col))
+        );
+    }
+
+    private getBorderedMazeStructure(): MazeStructure {
+        this.localMaze.shift();
+        this.localMaze = this.localMaze.map((row) => {
+            row.shift();
+            return row;
+        });
+        this.localMaze[0] = this.localMaze[0].fill(this.WALL);
+        this.localMaze[this.localMaze.length - 1] = this.localMaze
+            .at(0)!
+            .fill(this.WALL);
+        this.localMaze.forEach((row) => (row[0] = this.WALL));
+        this.localMaze.forEach((row) => (row[row.length - 1] = this.WALL));
+
+        return this.localMaze as MazeStructure;
     }
 
     private generateFinish() {
@@ -87,17 +203,15 @@ export class MazeModel implements ISubject {
         const isExCell = (cell: Cell) =>
             exceptions.find((exCell) => cellsEqual(exCell, cell));
 
-        const wall: Wall = 1;
-
         let cell: Cell = [row, col];
         let cellState: CellState = this.state.map[row][col];
 
-        while (cellState === wall || isExCell(cell)) {
-            row = Math.round(Math.random() * (this.state.rows - 1));
-            col = Math.round(Math.random() * (this.state.cols - 1));
+        while (cellState === this.WALL || isExCell(cell)) {
+            row = Math.round(Math.random() * (this.rows - 2));
+            col = Math.round(Math.random() * (this.cols - 2));
 
             cell = [row, col];
-            cellState = this.state.map[row][col];
+            cellState = this.state.map[row]?.[col];
         }
 
         return cell;
@@ -117,13 +231,12 @@ export class MazeModel implements ISubject {
         const map = this.state.map;
         const row = cell[0];
         const col = cell[1];
-        const wall: Wall = 1;
 
         const passageFinder = {
-            Left: () => map[row][col - 1] !== wall,
-            Down: () => map[row + 1][col] !== wall,
-            Right: () => map[row][col + 1] !== wall,
-            Up: () => map[row - 1][col] !== wall,
+            Left: () => map[row][col - 1] !== this.WALL,
+            Down: () => map[row + 1][col] !== this.WALL,
+            Right: () => map[row][col + 1] !== this.WALL,
+            Up: () => map[row - 1][col] !== this.WALL,
         };
 
         return passageFinder[direction]();
