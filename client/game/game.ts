@@ -1,25 +1,27 @@
-import { IMediator } from 'Types';
-import { GameEvent, GameSender } from 'Game';
-import { MazeController, MazeEventType } from 'Maze';
-import {
-    InputHandlerObject,
-    PlayerEventType,
-    MovementDirection,
-    PlayerController,
-} from 'Player';
-import { cellsEqual } from 'Utils';
+import { GameEvent, GameSender, GameService } from '@client/game';
+import { MazeController } from '@client/maze';
+import { PlayerController } from '@client/player';
+import { MazeEventType, IMediator, InputHandlerObject } from '@shared/types';
+import { cellsEqual } from '@shared/utils';
+import { MovementDirection, PlayerEventType } from '@shared/types';
 
 export class Game implements IMediator<GameSender, GameEvent> {
+    private readonly service = new GameService();
+
     constructor(
         private readonly maze: MazeController,
-        private readonly player: PlayerController
+        private readonly player: PlayerController,
     ) {
         this.maze.setMediator(this);
         this.player.setMediator(this);
     }
 
-    start() {
-        this.maze.create();
+    start(rows: number, cols: number) {
+        this.maze.create(rows, cols);
+    }
+
+    startByMazeKey(key: string) {
+        this.maze.createByKey(key);
     }
 
     send(sender: GameSender, event: GameEvent): void {
@@ -33,11 +35,15 @@ export class Game implements IMediator<GameSender, GameEvent> {
         switch (event) {
             case PlayerEventType.Move:
                 this.isGameEnd() && this.onGameEnd();
+                console.log('Move', this.player.getState().id);
                 break;
             case PlayerEventType.Generate:
                 this.player.addFocusByWindowClick();
+                console.log('Generate', this.player.getState().id);
                 break;
         }
+
+        this.service.send(this.player.getState(), this.maze.getState().key);
     }
 
     private readonly playerMovementHandlerObject: InputHandlerObject = [
@@ -50,7 +56,6 @@ export class Game implements IMediator<GameSender, GameEvent> {
 
             if (key.includes('Arrow')) {
                 const direction = key.replace('Arrow', '') as MovementDirection;
-
                 this.maze.isPassage(direction, currentCell) &&
                     this.player.move(direction);
             }
@@ -61,7 +66,7 @@ export class Game implements IMediator<GameSender, GameEvent> {
             this.player.create(
                 this.maze.getRandomPassageCell(),
                 this.maze.getCellSizePx(),
-                this.playerMovementHandlerObject
+                this.playerMovementHandlerObject,
             );
             this.maze.addRenderable(this.player);
         }
@@ -70,7 +75,7 @@ export class Game implements IMediator<GameSender, GameEvent> {
     private isGameEnd(): boolean {
         return cellsEqual(
             this.maze.getState().finishCell,
-            this.player.getState().currentCell
+            this.player.getState().currentCell,
         );
     }
 
@@ -78,5 +83,16 @@ export class Game implements IMediator<GameSender, GameEvent> {
         this.player.removeInputHandler(this.playerMovementHandlerObject);
         this.player.removeFocusByWindowClick();
         this.player.win();
+        this.deletePlayer();
+    }
+
+    deletePlayer() {
+        if (isNaN(this.player.getState().id))
+            return new Promise((res) => res(null));
+
+        return this.service.deletePlayer(
+            this.player.getState().id,
+            this.maze.getState().key,
+        );
     }
 }

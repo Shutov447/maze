@@ -1,4 +1,4 @@
-import { INotifyEvent } from 'Types';
+import { Cell, INotifyEvent } from '@shared/types';
 
 export class PlayerEvent implements INotifyEvent {
     constructor(readonly type: PlayerEventType) {}
@@ -9,9 +9,15 @@ export enum PlayerEventType {
     Move,
 }
 
+export interface IPlayerState {
+    currentCell: Cell;
+    lastMove: MovementDirection | null;
+    id: number;
+}
+
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';
 export type InputHandlerObject = [
     type: keyof HTMLElementEventMap,
-    listener: EventListener
+    listener: EventListener,
 ];
 export type PlayerElem = HTMLElement;

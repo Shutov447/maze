@@ -1,4 +1,3 @@
-export * from './maze.controller.js';
-export * from './maze.model.js';
-export * from './maze.view.js';
-export * from './maze.types.js';
+export * from './maze.controller.ts';
+export * from './maze.model.ts';
+export * from './maze.view.ts';

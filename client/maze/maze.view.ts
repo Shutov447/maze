@@ -1,15 +1,17 @@
-import { IObserver, ISubject, INotifyEvent } from 'Types';
+import { MazeModel } from '@client/maze';
+import { generateId } from '@shared/utils';
 import {
+    Cell,
     IMazeState,
-    MazeModel,
+    INotifyEvent,
+    IObserver,
+    ISubject,
+    MazeElem,
     MazeEvent,
     MazeEventType,
-    Cell,
-    MazeElem,
     MazeRow,
     MazeStructure,
-} from 'Maze';
-import { generateId } from 'Utils';
+} from '@shared/types';
 
 export class MazeView implements IObserver {
     readonly container: MazeElem = document.createElement('div');
@@ -31,6 +33,7 @@ export class MazeView implements IObserver {
         this.addContainer();
         this.addMaze(state.map, this.cellSizePx);
         this.addFinish(state.finishCell);
+        this.addKey(state.key);
     }
 
     private clear() {
@@ -39,6 +42,7 @@ export class MazeView implements IObserver {
 
     private addContainer() {
         this.container.style.position = 'relative';
+        this.container.style.marginTop = '40px';
         document.body.append(this.container);
     }
 
@@ -69,6 +73,13 @@ export class MazeView implements IObserver {
         finishElem && (finishElem.style.backgroundColor = 'green');
     }
 
+    private addKey(key: string) {
+        const keyElem = document.createElement('div');
+        keyElem.style.position = 'absolute';
+        keyElem.style.bottom = '5px';
+        keyElem.innerText = 'ключ игры: ' + key;
+        this.container.appendChild(keyElem);
+    }
     addCellElem(elem: HTMLElement) {
         this.container.appendChild(elem);
     }

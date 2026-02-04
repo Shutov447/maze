@@ -1,23 +1,37 @@
-import { MediatorComponent, IRenderable } from 'Types';
+import { IRenderable } from '@client/types';
+import { PlayerModel, PlayerView } from '@client/player';
 import {
+    Cell,
+    INotifyEvent,
     InputHandlerObject,
+    IObserver,
     IPlayerState,
+    ISubject,
+    MediatorComponent,
     MovementDirection,
+    PlayerEvent,
     PlayerEventType,
-    PlayerModel,
-    PlayerView,
-} from 'Player';
-import { Cell } from 'Maze';
+} from '@shared/types';
 
 export class PlayerController
     extends MediatorComponent<PlayerController, PlayerEventType>
-    implements IRenderable
+    implements IRenderable, IObserver
 {
     constructor(
         private readonly model: PlayerModel,
-        private readonly view: PlayerView
+        private readonly view: PlayerView,
     ) {
         super();
+    }
+
+    update(subject: ISubject, event: INotifyEvent): void {
+        if (
+            subject instanceof PlayerModel &&
+            event instanceof PlayerEvent &&
+            event.type === PlayerEventType.Generate
+        ) {
+            this.mediator?.send(this, PlayerEventType.Generate);
+        }
     }
 
     create(
@@ -26,13 +40,13 @@ export class PlayerController
         ...inputHandlers: InputHandlerObject[]
     ) {
         this.model.attach(this.view);
+        this.model.attach(this);
         this.model.setCurrentCell(spawnCell);
+        this.model.generateId();
 
         this.view.addStyle(sizePx);
         this.view.setPosition(spawnCell);
         inputHandlers.forEach((handler) => this.view.addInputHandler(handler));
-
-        this.mediator?.send(this, PlayerEventType.Generate);
     }
 
     addTo(container: HTMLElement): void {
@@ -56,10 +70,10 @@ export class PlayerController
     }
 
     addFocusByWindowClick() {
-        window.addEventListener(...this.view.playerFocusHandlerObject);
+        addEventListener(...this.view.playerFocusHandlerObject);
     }
     removeFocusByWindowClick() {
-        window.removeEventListener(...this.view.playerFocusHandlerObject);
+        removeEventListener(...this.view.playerFocusHandlerObject);
     }
 
     getState(): IPlayerState {

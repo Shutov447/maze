@@ -1,10 +1,16 @@
-import { MovementDirection } from 'Player';
-import { INotifyEvent } from 'Types';
+import { INotifyEvent, MovementDirection } from '@shared/types';
 
 export class MazeEvent implements INotifyEvent {
     constructor(readonly type: MazeEventType) {}
 }
 
+export interface IMazeState {
+    rows: number;
+    cols: number;
+    finishCell: Cell;
+    map: MazeStructure;
+    key: string;
+}
 export interface IMazeSibling {
     type: MovementDirection;
     state: Passage | Wall | Visited;

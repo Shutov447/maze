@@ -1,0 +1,26 @@
+{
+    "tasks": {
+        "start": "deno run --allow-net=0.0.0.0:8000 --allow-read --env-file --allow-env server/server.ts",
+        "dev": "deno run --watch --allow-net=0.0.0.0:8000 --allow-read --env-file --allow-env server/server.ts",
+        "build:client": "deno bundle --outdir=build/client client/main.ts"
+    },
+    "imports": {
+        "@client/game": "./client/game/index.ts",
+        "@client/maze": "./client/maze/index.ts",
+        "@client/player": "./client/player/index.ts",
+        "@client/types": "./client/types/index.ts",
+        "@server/router": "./server/router/index.ts",
+        "@server/router/decorators": "./server/router/decorators/index.ts",
+        "@server/service": "./server/service/index.ts",
+        "@server/shared/types": "./server/shared/types/index.ts",
+        "@server/shared/utils": "./server/shared/utils/index.ts",
+        "@shared/types": "./shared/types/index.ts",
+        "@shared/utils": "./shared/utils/index.ts"
+    },
+    "compilerOptions": {
+        "lib": ["dom", "deno.ns"],
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true
+    },
+    "exclude": ["build"]
+}

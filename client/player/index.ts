@@ -1,4 +1,3 @@
-export * from './player.controller.js';
-export * from './player.model.js';
-export * from './player.view.js';
-export * from './player.types.js';
+export * from './player.controller.ts';
+export * from './player.model.ts';
+export * from './player.view.ts';

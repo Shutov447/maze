@@ -1,14 +1,13 @@
-import { IObserver, ISubject, INotifyEvent } from 'Types';
-import { Cell } from 'Maze';
 import {
-    PlayerModel,
+    InputHandlerObject,
+    MovementDirection,
+    PlayerElem,
     PlayerEvent,
     PlayerEventType,
-    MovementDirection,
-    InputHandlerObject,
-    PlayerElem,
-} from 'Player';
-import { generateColor } from 'Utils';
+} from '@shared/types';
+import { PlayerModel } from '@client/player';
+import { Cell, IObserver, ISubject, INotifyEvent } from '@shared/types';
+import { generateColor } from '@shared/utils';
 
 export class PlayerView implements IObserver {
     readonly elem: PlayerElem = document.createElement('button');

@@ -1,17 +1,17 @@
-import { IObserver, ISubject, INotifyEvent } from 'Types';
-import { Cell } from 'Maze';
-import { MovementDirection, PlayerEvent, PlayerEventType } from 'Player';
-
-export interface IPlayerState {
-    currentCell: Cell;
-    lastMove: MovementDirection | null;
-}
+import {
+    IPlayerState,
+    MovementDirection,
+    PlayerEvent,
+    PlayerEventType,
+} from '@shared/types';
+import { Cell, ISubject, IObserver, INotifyEvent } from '@shared/types';
 
 export class PlayerModel implements ISubject {
     private readonly observers = new Set<IObserver>();
     private readonly state: IPlayerState = {
         currentCell: [0, 0],
         lastMove: null,
+        id: NaN,
     };
 
     move(direction: MovementDirection): void {
@@ -52,5 +52,17 @@ export class PlayerModel implements ISubject {
 
     getState(): IPlayerState {
         return structuredClone(this.state);
+    }
+
+    async generateId() {
+        const response = await fetch(
+            `http://localhost:8000/player/generate-id`,
+            {
+                method: 'GET',
+            },
+        );
+        this.state.id = await response.json();
+        console.log('PlayerModel.generateId', this.state.id);
+        this.notify(new PlayerEvent(PlayerEventType.Generate));
     }
 }

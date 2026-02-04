@@ -9,5 +9,5 @@ export interface ISubject {
 }
 
 export interface INotifyEvent {
-    readonly type: any;
+    readonly type: unknown;
 }

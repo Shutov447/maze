@@ -1,36 +1,40 @@
-Deno.serve({ port: 8000, hostname: '0.0.0.0' }, (req) => {
-    const rootDir = '../';
-    const url = req.url.replace('http://localhost:8000/', rootDir);
+import {
+    AppController,
+    MazeController,
+    PlayerController,
+} from '@server/router';
+import { getAllControllers, matchRoute } from '@server/shared/utils';
+import { AugmentedRequest } from '@server/shared/types';
 
-    if (req.url === 'http://localhost:8000/') {
-        const body = Deno.readTextFileSync(rootDir + 'index.html');
+const controllers = [AppController, MazeController, PlayerController];
 
-        return new Response(body, {
-            headers: {
-                'content-type': 'text/html; charset=utf-8',
-            },
-        });
+const instances = new Map<Function, any>();
+for (const C of controllers) {
+    instances.set(C, new C());
+}
+
+const port = Deno.env.get('PORT') || 8000;
+const hostname = Deno.env.get('HOSTNAME') ?? '0.0.0.0';
+Deno.serve({ port: +port, hostname }, (req) => {
+    const { pathname } = new URL(req.url);
+    for (const [Ctor, meta] of getAllControllers()) {
+        const instance = instances.get(Ctor);
+        const base = meta.prefix;
+
+        for (const route of meta.routes) {
+            const fullPath = base + route.path;
+            const match = matchRoute(fullPath, pathname);
+
+            if (match.matched) {
+                const handler = instance[route.methodName].bind(instance);
+                const augmentedReq = Object.assign(req, {
+                    params: match.params,
+                }) as AugmentedRequest;
+
+                return handler(augmentedReq) as Response;
+            }
+        }
     }
-    if (url.includes('.js')) {
-        const body = Deno.readTextFileSync(url);
 
-        return new Response(body, {
-            headers: {
-                'content-type': 'text/javascript',
-            },
-        });
-    }
-    if (url.includes('.css')) {
-        const body = Deno.readTextFileSync(url);
-
-        return new Response(body, {
-            headers: {
-                'content-type': 'text/css',
-            },
-        });
-    }
-
-    return new Response('not found', {
-        status: 404,
-    });
+    return new Response('Not found', { status: 404 });
 });

@@ -6,17 +6,23 @@
         <link rel="stylesheet" href="./style.css" />
         <title>Document</title>
     </head>
-    <body></body>
-    <script type="importmap">
-        {
-            "imports": {
-                "Game": "./build/client/game/index.js",
-                "Maze": "./build/client/maze/index.js",
-                "Player": "./build/client/player/index.js",
-                "Utils": "./build/client/utils/index.js",
-                "Types": "./build/client/types/index.js"
-            }
-        }
-    </script>
+    <body>
+        <div>
+            <label for="rows">высота лабиринта:</label>
+            <input type="number" name="rows" id="rows" min="5" />
+        </div>
+        <div>
+            <label for="cols">ширина лабиринта:</label>
+            <input type="number" name="cols" id="cols" min="5" />
+        </div>
+        <div>
+            <label for="mazeKey"
+                >ключ игры (для игры online вместе с владельцем ключа):</label
+            >
+            <input type="text" name="mazeKey" id="mazeKey" />
+        </div>
+
+        <button id="play">играть</button>
+    </body>
     <script src="./build/client/main.js" type="module"></script>
 </html>
