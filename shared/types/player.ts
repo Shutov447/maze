@@ -7,12 +7,15 @@ export enum PlayerEventType {
     Generate,
     CurrentCellIsSet,
     Move,
+    Delete,
+    Win,
 }
 
 export interface IPlayerState {
     currentCell: Cell;
     lastMove: MovementDirection | null;
     id: number;
+    color: string;
 }
 
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';

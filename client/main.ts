@@ -15,10 +15,8 @@ class App {
     main() {
         this.playButton?.addEventListener('click', () => {
             game.deletePlayer()?.then(() => {
-                console.log('asddasdas');
-                if (this.mazeKay.value) {
-                    game.startByMazeKey(this.mazeKay.value);
-                } else {
+                if (this.mazeKay.value) game.startByMazeKey(this.mazeKay.value);
+                else {
                     const rows = +this.rows.value < 5 ? 5 : +this.rows.value;
                     const cols = +this.cols.value < 5 ? 5 : +this.cols.value;
                     game.start(rows, cols);

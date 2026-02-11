@@ -5,13 +5,17 @@ import {
     PlayerEventType,
 } from '@shared/types';
 import { Cell, ISubject, IObserver, INotifyEvent } from '@shared/types';
+import { generateColor } from '@shared/utils';
+import { env } from '@client/env';
 
 export class PlayerModel implements ISubject {
     private readonly observers = new Set<IObserver>();
-    private readonly state: IPlayerState = {
+
+    protected state: IPlayerState = {
         currentCell: [0, 0],
         lastMove: null,
         id: NaN,
+        color: generateColor(),
     };
 
     move(direction: MovementDirection): void {
@@ -34,14 +38,30 @@ export class PlayerModel implements ISubject {
         this.state.currentCell[0]--;
     }
 
+    async generateId() {
+        const response = await fetch(`${env.DOMAIN}/player/generate-id`, {
+            method: 'GET',
+        });
+        this.state.id = await response.json();
+        this.notify(new PlayerEvent(PlayerEventType.Generate), {
+            state: this.state,
+            isMain: true,
+        });
+    }
+
     setCurrentCell(cell: Cell) {
         this.state.currentCell = cell;
 
         this.notify(new PlayerEvent(PlayerEventType.CurrentCellIsSet));
     }
 
-    notify(event: INotifyEvent): void {
-        this.observers.forEach((observer) => observer.update(this, event));
+    notify(
+        event: INotifyEvent,
+        data?: IPlayerState | { state: IPlayerState; isMain: true },
+    ): void {
+        this.observers.forEach((observer) =>
+            observer.update(this, event, data),
+        );
     }
     attach(observer: IObserver): void {
         this.observers.add(observer);
@@ -54,15 +74,12 @@ export class PlayerModel implements ISubject {
         return structuredClone(this.state);
     }
 
-    async generateId() {
-        const response = await fetch(
-            `http://localhost:8000/player/generate-id`,
-            {
-                method: 'GET',
-            },
-        );
-        this.state.id = await response.json();
-        console.log('PlayerModel.generateId', this.state.id);
-        this.notify(new PlayerEvent(PlayerEventType.Generate));
+    resetState() {
+        this.state = {
+            ...this.state,
+            currentCell: [0, 0],
+            lastMove: null,
+            id: NaN,
+        };
     }
 }

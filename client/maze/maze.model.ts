@@ -9,6 +9,7 @@ import {
     MovementDirection,
     Wall,
 } from '@shared/types';
+import { env } from '@client/env';
 
 export class MazeModel implements ISubject {
     private readonly observers = new Set<IObserver>();
@@ -29,7 +30,7 @@ export class MazeModel implements ISubject {
         cols = cols % 2 === 1 ? cols + 1 : cols;
 
         const response = await fetch(
-            `http://localhost:8000/maze/generate?rows=${rows}&cols=${cols}`,
+            `${env.DOMAIN}/maze/generate?rows=${rows}&cols=${cols}`,
             {
                 method: 'GET',
             },
@@ -40,7 +41,7 @@ export class MazeModel implements ISubject {
     }
 
     async getByKey(key: string) {
-        const response = await fetch(`http://localhost:8000/maze/${key}`, {
+        const response = await fetch(`${env.DOMAIN}/maze/${key}`, {
             method: 'GET',
         });
         this.state = await response.json();
@@ -75,5 +76,15 @@ export class MazeModel implements ISubject {
 
     getState(): IMazeState {
         return structuredClone(this.state);
+    }
+
+    reset() {
+        this.state = {
+            cols: 0,
+            rows: 0,
+            finishCell: [0, 0],
+            map: [],
+            key: '',
+        };
     }
 }

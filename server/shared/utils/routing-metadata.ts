@@ -27,7 +27,6 @@ export const addRoute = (target: Function, def: RouteDefinition): void => {
 export const getControllerMeta = (
     target: Function,
 ): ControllerMeta | undefined => {
-    console.log(controllers);
     return controllers.get(target);
 };
 

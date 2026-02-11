@@ -7,7 +7,6 @@ import {
 } from '@shared/types';
 import { PlayerModel } from '@client/player';
 import { Cell, IObserver, ISubject, INotifyEvent } from '@shared/types';
-import { generateColor } from '@shared/utils';
 
 export class PlayerView implements IObserver {
     readonly elem: PlayerElem = document.createElement('button');
@@ -29,18 +28,30 @@ export class PlayerView implements IObserver {
         this.elem.style.position = 'absolute';
         this.elem.style.width = sizePx + 'px';
         this.elem.style.height = sizePx + 'px';
-        this.elem.style.borderRadius = 50 + '%';
-        this.elem.style.backgroundColor = generateColor();
+        this.elem.style.borderRadius = '50%';
     }
 
-    update(subject: ISubject, event: INotifyEvent): void {
-        if (
-            subject instanceof PlayerModel &&
-            event instanceof PlayerEvent &&
-            event.type === PlayerEventType.Move
-        ) {
-            const lastMove = subject.getState().lastMove;
-            lastMove && this.move(lastMove);
+    update(subject: ISubject, event: INotifyEvent, data?: any): void {
+        if (subject instanceof PlayerModel && event instanceof PlayerEvent) {
+            if (event.type === PlayerEventType.Move) {
+                const lastMove = subject.getState().lastMove;
+                lastMove && this.move(lastMove);
+                return;
+            }
+
+            if (!(data?.state || data)) return;
+
+            if (event.type === PlayerEventType.Generate) {
+                if (data.id === 0 || data.id) {
+                    this.setColor(data.color);
+                    return;
+                }
+                if ((data.state.id === 0 || data.state.id) && data.isMain) {
+                    this.makeHole(data.state.color);
+                    this.setZIndex(100);
+                    return;
+                }
+            }
         }
     }
 
@@ -62,6 +73,10 @@ export class PlayerView implements IObserver {
         container.appendChild(this.elem);
     }
 
+    removeFrom(container: HTMLElement) {
+        container.removeChild(this.elem);
+    }
+
     setPosition(cell: Cell) {
         const [row, col] = cell;
 
@@ -74,5 +89,17 @@ export class PlayerView implements IObserver {
     }
     removeInputHandler(handlerObj: InputHandlerObject): void {
         this.elem.removeEventListener(...handlerObj);
+    }
+
+    setColor(color: string) {
+        this.elem.style.backgroundColor = color;
+    }
+
+    makeHole(color: string) {
+        this.elem.style.background = `radial-gradient(circle, transparent 0%, transparent 29%, ${color} 31%) rgba(0, 0, 0, 0)`;
+    }
+
+    setZIndex(zIndex: number) {
+        this.elem.style.zIndex = zIndex.toString();
     }
 }

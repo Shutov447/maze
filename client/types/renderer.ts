@@ -4,4 +4,5 @@ export interface IRenderer {
 
 export interface IRenderable {
     addTo(container: HTMLElement): void;
+    removeFrom(container: HTMLElement): void;
 }

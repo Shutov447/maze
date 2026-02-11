@@ -1,11 +1,21 @@
 import { GameEvent, GameSender, GameService } from '@client/game';
 import { MazeController } from '@client/maze';
 import { PlayerController } from '@client/player';
-import { MazeEventType, IMediator, InputHandlerObject } from '@shared/types';
+import {
+    MazeEventType,
+    IMediator,
+    InputHandlerObject,
+    ISubject,
+    INotifyEvent,
+    PlayerEvent,
+    IObserver,
+    IPlayerState,
+} from '@shared/types';
 import { cellsEqual } from '@shared/utils';
 import { MovementDirection, PlayerEventType } from '@shared/types';
+import { otherPlayerMgr } from '@client/other-player';
 
-export class Game implements IMediator<GameSender, GameEvent> {
+export class Game implements IMediator<GameSender, GameEvent>, IObserver {
     private readonly service = new GameService();
 
     constructor(
@@ -16,11 +26,58 @@ export class Game implements IMediator<GameSender, GameEvent> {
         this.player.setMediator(this);
     }
 
+    update(
+        subject: ISubject,
+        event: INotifyEvent,
+        currentMoverPlayer?: IPlayerState,
+    ) {
+        // TODO: можно еще сделать базовые классы Player,
+        // и от них наследовать MoverPlayer и OtherPlayer,
+        // чтобы можно было применять стили именно к игроку которым управляешь
+        if (subject instanceof GameService && event instanceof PlayerEvent) {
+            if (event.type === PlayerEventType.Win) {
+                otherPlayerMgr.deleteAll();
+                this.maze.delete();
+                return;
+            }
+
+            const isPlayerState =
+                currentMoverPlayer?.id || currentMoverPlayer?.id === 0;
+            if (!isPlayerState) return;
+
+            const isThisMe =
+                currentMoverPlayer.id === this.player.getState().id;
+            if (isThisMe) return;
+
+            if (event.type === PlayerEventType.Delete) {
+                otherPlayerMgr.delete(currentMoverPlayer.id, this.maze);
+                return;
+            }
+
+            if (event.type === PlayerEventType.Generate) {
+                otherPlayerMgr.create(currentMoverPlayer, this.maze);
+                return;
+            }
+
+            if (event.type === PlayerEventType.Move) {
+                otherPlayerMgr.move(
+                    currentMoverPlayer.id,
+                    currentMoverPlayer.lastMove!,
+                );
+                return;
+            }
+        }
+    }
+
     start(rows: number, cols: number) {
+        otherPlayerMgr.deleteAll();
+        this.service.attach(this);
         this.maze.create(rows, cols);
     }
 
     startByMazeKey(key: string) {
+        otherPlayerMgr.deleteAll();
+        this.service.attach(this);
         this.maze.createByKey(key);
     }
 
@@ -35,11 +92,10 @@ export class Game implements IMediator<GameSender, GameEvent> {
         switch (event) {
             case PlayerEventType.Move:
                 this.isGameEnd() && this.onGameEnd();
-                console.log('Move', this.player.getState().id);
                 break;
             case PlayerEventType.Generate:
                 this.player.addFocusByWindowClick();
-                console.log('Generate', this.player.getState().id);
+                this.maze.addRenderable(this.player);
                 break;
         }
 
@@ -62,14 +118,12 @@ export class Game implements IMediator<GameSender, GameEvent> {
         },
     ];
     private handleMazeEvent(event: MazeEventType) {
-        if (event === MazeEventType.Generate) {
+        if (event === MazeEventType.Generate)
             this.player.create(
                 this.maze.getRandomPassageCell(),
                 this.maze.getCellSizePx(),
                 this.playerMovementHandlerObject,
             );
-            this.maze.addRenderable(this.player);
-        }
     }
 
     private isGameEnd(): boolean {
@@ -79,20 +133,24 @@ export class Game implements IMediator<GameSender, GameEvent> {
         );
     }
 
-    private onGameEnd(): void {
+    private async onGameEnd() {
         this.player.removeInputHandler(this.playerMovementHandlerObject);
         this.player.removeFocusByWindowClick();
         this.player.win();
-        this.deletePlayer();
+        const playerId = this.player.getState().id;
+        const mazeKey = this.maze.getState().key;
+        await this.service.finishGame(playerId, mazeKey);
+        await this.deletePlayer(playerId, mazeKey);
+        this.maze.delete();
     }
 
-    deletePlayer() {
-        if (isNaN(this.player.getState().id))
-            return new Promise((res) => res(null));
+    deletePlayer(
+        id: number = this.player.getState().id,
+        mazeKey: string = this.maze.getState().key,
+    ) {
+        if (isNaN(id)) return new Promise((res) => res(null));
 
-        return this.service.deletePlayer(
-            this.player.getState().id,
-            this.maze.getState().key,
-        );
+        this.player.delete();
+        return this.service.deletePlayer(id, mazeKey);
     }
 }

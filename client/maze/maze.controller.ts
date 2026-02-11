@@ -35,23 +35,24 @@ export class MazeController
     }
 
     create(rows: number, cols: number): void {
-        this.model.attach(this.view);
         this.model.attach(this);
+        this.model.attach(this.view);
         this.model.generate(rows, cols);
     }
-
     createByKey(key: string): void {
         this.model.attach(this.view);
         this.model.attach(this);
         this.model.getByKey(key);
     }
 
-    getContainer(): HTMLElement {
-        return this.view.container;
-    }
-
     addRenderable(renderable: IRenderable) {
         renderable.addTo(this.getContainer());
+    }
+    removeRenderable(renderable: IRenderable) {
+        renderable.removeFrom(this.getContainer());
+    }
+    getContainer(): HTMLElement {
+        return this.view.container;
     }
 
     isPassage(direction: MovementDirection, cell: Cell): boolean {
@@ -72,5 +73,10 @@ export class MazeController
 
     getState(): IMazeState {
         return this.model.getState();
+    }
+
+    delete() {
+        this.view.delete();
+        this.model.reset();
     }
 }

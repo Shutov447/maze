@@ -80,7 +80,12 @@ export class MazeView implements IObserver {
         keyElem.innerText = 'ключ игры: ' + key;
         this.container.appendChild(keyElem);
     }
+
     addCellElem(elem: HTMLElement) {
         this.container.appendChild(elem);
+    }
+
+    delete() {
+        this.container.innerHTML = '';
     }
 }

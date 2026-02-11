@@ -29,9 +29,8 @@ export class PlayerController
             subject instanceof PlayerModel &&
             event instanceof PlayerEvent &&
             event.type === PlayerEventType.Generate
-        ) {
+        )
             this.mediator?.send(this, PlayerEventType.Generate);
-        }
     }
 
     create(
@@ -39,8 +38,8 @@ export class PlayerController
         sizePx: number,
         ...inputHandlers: InputHandlerObject[]
     ) {
-        this.model.attach(this.view);
         this.model.attach(this);
+        this.model.attach(this.view);
         this.model.setCurrentCell(spawnCell);
         this.model.generateId();
 
@@ -51,6 +50,9 @@ export class PlayerController
 
     addTo(container: HTMLElement): void {
         this.view.renderTo(container);
+    }
+    removeFrom(container: HTMLElement): void {
+        this.view.removeFrom(container);
     }
 
     move(direction: MovementDirection): void {
@@ -78,5 +80,9 @@ export class PlayerController
 
     getState(): IPlayerState {
         return this.model.getState();
+    }
+
+    delete() {
+        this.model.resetState();
     }
 }

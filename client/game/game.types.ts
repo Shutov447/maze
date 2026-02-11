@@ -1,6 +1,6 @@
 import { MazeController } from '@client/maze';
-import { PlayerController, PlayerEventType } from '@client/player';
-import { MazeEventType } from '@shared/types';
+import { MazeEventType, PlayerEventType } from '@shared/types';
+import { PlayerController } from '@client/player';
 
 export type GameSender = MazeController | PlayerController;
 export type GameEvent = MazeEventType | PlayerEventType;
