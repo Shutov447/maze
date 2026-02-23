@@ -1,21 +1,22 @@
 import {
+    INotifyEvent,
+    IObserver,
     IPlayerState,
+    ISubject,
     MovementDirection,
     PlayerEvent,
     PlayerEventType,
 } from '@shared/types';
-import { Cell, ISubject, IObserver, INotifyEvent } from '@shared/types';
-import { generateColor } from '@shared/utils';
-import { env } from '@client/env';
 
-export class PlayerModel implements ISubject {
-    private readonly observers = new Set<IObserver>();
+export class BasePlayerModel implements ISubject {
+    protected readonly observers = new Set<IObserver>();
 
     protected state: IPlayerState = {
         currentCell: [0, 0],
         lastMove: null,
         id: NaN,
-        color: generateColor(),
+        color: '',
+        sizePx: 0,
     };
 
     move(direction: MovementDirection): void {
@@ -38,30 +39,8 @@ export class PlayerModel implements ISubject {
         this.state.currentCell[0]--;
     }
 
-    async generateId() {
-        const response = await fetch(`${env.DOMAIN}/player/generate-id`, {
-            method: 'GET',
-        });
-        this.state.id = await response.json();
-        this.notify(new PlayerEvent(PlayerEventType.Generate), {
-            state: this.state,
-            isMain: true,
-        });
-    }
-
-    setCurrentCell(cell: Cell) {
-        this.state.currentCell = cell;
-
-        this.notify(new PlayerEvent(PlayerEventType.CurrentCellIsSet));
-    }
-
-    notify(
-        event: INotifyEvent,
-        data?: IPlayerState | { state: IPlayerState; isMain: true },
-    ): void {
-        this.observers.forEach((observer) =>
-            observer.update(this, event, data),
-        );
+    notify(event: INotifyEvent): void {
+        this.observers.forEach((observer) => observer.update(this, event));
     }
     attach(observer: IObserver): void {
         this.observers.add(observer);
@@ -70,16 +49,25 @@ export class PlayerModel implements ISubject {
         this.observers.delete(observer);
     }
 
+    setState(state: IPlayerState) {
+        this.state = state;
+
+        this.notify(new PlayerEvent(PlayerEventType.Generate));
+    }
+
     getState(): IPlayerState {
         return structuredClone(this.state);
     }
 
     resetState() {
         this.state = {
-            ...this.state,
             currentCell: [0, 0],
             lastMove: null,
             id: NaN,
+            color: '',
+            sizePx: 0,
         };
+
+        this.notify(new PlayerEvent(PlayerEventType.Delete));
     }
 }

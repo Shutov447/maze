@@ -5,7 +5,6 @@ export class PlayerEvent implements INotifyEvent {
 }
 export enum PlayerEventType {
     Generate,
-    CurrentCellIsSet,
     Move,
     Delete,
     Win,
@@ -16,6 +15,12 @@ export interface IPlayerState {
     lastMove: MovementDirection | null;
     id: number;
     color: string;
+    sizePx: number;
+}
+
+export interface IWsPlayerResponse {
+    player: IPlayerState;
+    type: PlayerEventType;
 }
 
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';

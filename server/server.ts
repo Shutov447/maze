@@ -1,10 +1,10 @@
+import { AugmentedRequest } from '@server/shared/types';
+import { getAllControllers, matchRoute } from '@server/shared/utils';
 import {
     AppController,
     MazeController,
     PlayerController,
 } from '@server/router';
-import { getAllControllers, matchRoute } from '@server/shared/utils';
-import { AugmentedRequest } from '@server/shared/types';
 
 const controllers = [AppController, MazeController, PlayerController];
 

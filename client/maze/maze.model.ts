@@ -1,5 +1,6 @@
 import {
     Cell,
+    IClientMazeState,
     IMazeState,
     INotifyEvent,
     IObserver,
@@ -11,40 +12,48 @@ import {
 } from '@shared/types';
 import { env } from '@client/env';
 
+export type GenerateMazeBy =
+    | IMazeState['key']
+    | [IMazeState['rows'], IMazeState['cols']];
+
 export class MazeModel implements ISubject {
     private readonly observers = new Set<IObserver>();
     private readonly WALL: Wall = 0;
 
-    private state: IMazeState = {
+    private state: IClientMazeState = {
         cols: 0,
         rows: 0,
         finishCell: [0, 0],
         map: [],
         key: '',
+        cellSizePx: NaN,
     };
 
-    constructor() {}
+    async generate(by: GenerateMazeBy, cellSizePx: number) {
+        let response: Response;
 
-    async generate(rows: number, cols: number) {
-        rows = rows % 2 === 1 ? rows + 1 : rows;
-        cols = cols % 2 === 1 ? cols + 1 : cols;
-
-        const response = await fetch(
-            `${env.DOMAIN}/maze/generate?rows=${rows}&cols=${cols}`,
-            {
+        if (typeof by === 'string') {
+            response = await fetch(`${env.DOMAIN}/maze/${by}`, {
                 method: 'GET',
-            },
-        );
-        this.state = await response.json();
+            });
+        } else {
+            let [rows, cols] = by;
+            rows = rows < 6 ? 6 : rows;
+            cols = cols < 6 ? 6 : cols;
+            response = await fetch(
+                `${env.DOMAIN}/maze/generate?rows=${rows}&cols=${cols}`,
+                {
+                    method: 'GET',
+                },
+            );
+        }
 
-        this.notify(new MazeEvent(MazeEventType.Generate));
-    }
+        if (response.ok) {
+            this.state = await response.json();
+            this.state.cellSizePx = cellSizePx;
+        }
 
-    async getByKey(key: string) {
-        const response = await fetch(`${env.DOMAIN}/maze/${key}`, {
-            method: 'GET',
-        });
-        this.state = await response.json();
+        if (!this.state.map.length) return;
 
         this.notify(new MazeEvent(MazeEventType.Generate));
     }
@@ -74,7 +83,7 @@ export class MazeModel implements ISubject {
         return passageFinder[direction]();
     }
 
-    getState(): IMazeState {
+    getState(): IClientMazeState {
         return structuredClone(this.state);
     }
 
@@ -85,6 +94,9 @@ export class MazeModel implements ISubject {
             finishCell: [0, 0],
             map: [],
             key: '',
+            cellSizePx: 20,
         };
+
+        this.notify(new MazeEvent(MazeEventType.Delete));
     }
 }

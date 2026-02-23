@@ -1,6 +1,6 @@
-import { Controller, Get } from '@server/router/decorators';
-import { game } from '@server/service';
 import { IPlayerState } from '@shared/types';
+import { game } from '@server/services';
+import { Controller, Get } from '@server/router/decorators';
 
 @Controller('/player')
 export class PlayerController {
@@ -31,44 +31,13 @@ export class PlayerController {
         socket.onmessage = (ev) => {
             const current: { player: IPlayerState; mazeKey: string } =
                 JSON.parse(ev.data);
-
             const playerExistOnMaze = !!game.findPlayerOnMaze(
                 current.player.id,
                 current.mazeKey,
             );
-
-            game.addPlayerOnMaze(current.player, socket, current.mazeKey);
-
-            const playersOnMaze = game.findGameState(
-                current.mazeKey,
-            )?.playersState;
-            playersOnMaze?.forEach((playerState) => {
-                if (!playerExistOnMaze) {
-                    playersOnMaze.forEach((anotherPlayerState) =>
-                        anotherPlayerState.client.send(
-                            JSON.stringify({
-                                player: playerState.player,
-                                isGenerated: playerExistOnMaze,
-                            }),
-                        ),
-                    );
-
-                    return;
-                }
-
-                const isOtherPlayer =
-                    playerState.player.id !== current.player.id;
-                if (isOtherPlayer) {
-                    playerState.client.send(
-                        JSON.stringify({
-                            player: current.player,
-                            isGenerated: playerExistOnMaze,
-                        }),
-                    );
-
-                    return;
-                }
-            });
+            playerExistOnMaze
+                ? game.updatePlayerState(current.player, current.mazeKey)
+                : game.addPlayerOnMaze(current.player, socket, current.mazeKey);
         };
     }
 
@@ -86,9 +55,12 @@ export class PlayerController {
         const mazeKey = url.searchParams.get('mazeKey');
 
         if (!(id && mazeKey))
-            return new Response('not found', {
-                status: 404,
-            });
+            return new Response(
+                `Невозможно удалить игрока ${id} из лабиринта по ключу ${mazeKey}.`,
+                {
+                    status: 404,
+                },
+            );
 
         game.deletePlayer(+id, mazeKey);
         game.deleteEmptyMazes();
@@ -111,20 +83,12 @@ export class PlayerController {
                 status: 404,
             });
 
-        this.onWin(+id, mazeKey);
+        game.win(+id, mazeKey);
         return new Response(
             `Игрок ${id} победил на лабиринте по ключу ${mazeKey}.`,
             {
                 status: 200,
             },
         );
-    }
-
-    onWin(id: number, mazeKey: string) {
-        const gameState = game.findGameState(mazeKey);
-        gameState?.playersState.forEach(({ client }) =>
-            client.send(JSON.stringify({ winnerId: id, isGenerated: true })),
-        );
-        game.deleteMaze(mazeKey);
     }
 }

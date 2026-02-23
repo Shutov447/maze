@@ -11,6 +11,9 @@ export interface IMazeState {
     map: MazeStructure;
     key: string;
 }
+export interface IClientMazeState extends IMazeState {
+    cellSizePx: number;
+}
 export interface IMazeSibling {
     type: MovementDirection;
     state: Passage | Wall | Visited;
@@ -21,6 +24,7 @@ export interface IMazeSibling {
 
 export enum MazeEventType {
     Generate,
+    Delete,
 }
 
 export type MazeStructure = MazeRow[];

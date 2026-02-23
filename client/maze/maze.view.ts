@@ -1,8 +1,6 @@
-import { MazeModel } from '@client/maze';
-import { generateId } from '@shared/utils';
 import {
     Cell,
-    IMazeState,
+    IClientMazeState,
     INotifyEvent,
     IObserver,
     ISubject,
@@ -12,38 +10,45 @@ import {
     MazeRow,
     MazeStructure,
 } from '@shared/types';
+import { generateId } from '@shared/utils';
+import { MazeModel } from '@client/maze';
 
 export class MazeView implements IObserver {
-    readonly container: MazeElem = document.createElement('div');
-
-    constructor(readonly cellSizePx: number) {}
+    readonly wrapper: MazeElem = document.createElement('div');
 
     update(subject: ISubject, event: INotifyEvent) {
-        if (
-            subject instanceof MazeModel &&
-            event instanceof MazeEvent &&
-            event.type === MazeEventType.Generate
-        ) {
-            this.render(subject.getState());
+        if (subject instanceof MazeModel && event instanceof MazeEvent) {
+            if (event.type === MazeEventType.Generate) {
+                this.clear();
+                this.render(subject.getState());
+
+                return;
+            }
+
+            if (event.type === MazeEventType.Delete) {
+                this.clear();
+
+                return;
+            }
         }
     }
 
-    private render(state: IMazeState) {
-        this.clear();
+    private render(state: IClientMazeState) {
         this.addContainer();
-        this.addMaze(state.map, this.cellSizePx);
+        this.addMaze(state.map, state.cellSizePx);
         this.addFinish(state.finishCell);
         this.addKey(state.key);
     }
 
     private clear() {
-        this.container.innerHTML = '';
+        this.wrapper.innerHTML = '';
+        this.keyElem.innerHTML = '';
     }
 
     private addContainer() {
-        this.container.style.position = 'relative';
-        this.container.style.marginTop = '40px';
-        document.body.append(this.container);
+        this.wrapper.style.position = 'relative';
+        this.wrapper.style.marginTop = '40px';
+        document.body.append(this.wrapper);
     }
 
     private addMaze(map: MazeStructure, cellSize: number) {
@@ -64,28 +69,24 @@ export class MazeView implements IObserver {
             cellElem.style.height = cellSize + 'px';
             cellElem.style.backgroundColor = cellState ? 'white' : 'black';
 
-            this.container.appendChild(cellElem);
+            this.wrapper.appendChild(cellElem);
         });
     }
 
     private addFinish(cell: Cell) {
         const finishElem = document.getElementById(generateId(cell));
-        finishElem && (finishElem.style.backgroundColor = 'green');
+        finishElem?.style.setProperty('background-color', 'green', 'important');
     }
 
+    private readonly keyElem = document.createElement('div');
     private addKey(key: string) {
-        const keyElem = document.createElement('div');
-        keyElem.style.position = 'absolute';
-        keyElem.style.bottom = '5px';
-        keyElem.innerText = 'ключ игры: ' + key;
-        this.container.appendChild(keyElem);
+        this.keyElem.style.position = 'absolute';
+        this.keyElem.style.bottom = '5px';
+        this.keyElem.innerText = 'ключ игры: ' + key;
+        this.wrapper.appendChild(this.keyElem);
     }
 
     addCellElem(elem: HTMLElement) {
-        this.container.appendChild(elem);
-    }
-
-    delete() {
-        this.container.innerHTML = '';
+        this.wrapper.appendChild(elem);
     }
 }

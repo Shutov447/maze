@@ -1,6 +1,10 @@
-import { Game } from '@client/game';
 import { MazeController, MazeModel, MazeView } from '@client/maze';
-import { PlayerController, PlayerModel, PlayerView } from '@client/player';
+import {
+    ControlledPlayerController,
+    ControlledPlayerModel,
+    ControlledPlayerView,
+} from '@client/controlled-player';
+import { Game } from '@client/game';
 
 class App {
     private readonly playButton = document.getElementById('play');
@@ -14,18 +18,14 @@ class App {
 
     main() {
         this.playButton?.addEventListener('click', () => {
-            game.deletePlayer()?.then(() => {
-                if (this.mazeKay.value) game.startByMazeKey(this.mazeKay.value);
-                else {
-                    const rows = +this.rows.value < 5 ? 5 : +this.rows.value;
-                    const cols = +this.cols.value < 5 ? 5 : +this.cols.value;
-                    game.start(rows, cols);
-                }
+            game.start(
+                this.mazeKay.value || [+this.rows.value, +this.cols.value],
+                20,
+            );
 
-                [this.rows, this.cols, this.mazeKay].forEach(
-                    (input) => (input.value = ''),
-                );
-            });
+            [this.rows, this.cols, this.mazeKay].forEach(
+                (input) => (input.value = ''),
+            );
         });
 
         [this.rows, this.cols, this.mazeKay].forEach((input) => {
@@ -42,12 +42,12 @@ class App {
 }
 
 const mazeModel = new MazeModel();
-const mazeView = new MazeView(20);
+const mazeView = new MazeView();
 const maze = new MazeController(mazeModel, mazeView);
 
-const playerModel = new PlayerModel();
-const playerView = new PlayerView();
-const player = new PlayerController(playerModel, playerView);
+const playerModel = new ControlledPlayerModel();
+const playerView = new ControlledPlayerView();
+const player = new ControlledPlayerController(playerModel, playerView);
 
 const game = new Game(maze, player);
 

@@ -1,6 +1,6 @@
-import { game, Maze } from '@server/service';
-import { Controller, Get } from '@server/router/decorators';
 import type { AugmentedRequest } from '@server/shared/types';
+import { game, Maze } from '@server/services';
+import { Controller, Get } from '@server/router/decorators';
 
 @Controller('/maze')
 export class MazeController {

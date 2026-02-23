@@ -1,66 +1,34 @@
-import { IRenderer, IRenderable } from '@client/types';
-import { MazeModel, MazeView } from '@client/maze';
-import { MovementDirection } from '@shared/types';
 import {
     Cell,
-    IMazeState,
-    INotifyEvent,
-    IObserver,
-    ISubject,
-    MazeEvent,
+    IClientMazeState,
     MazeEventType,
-    MediatorComponent,
+    MediatorComponentMixin,
+    MovementDirection,
 } from '@shared/types';
 import { findRandomPassageCell } from '@shared/utils';
+import { Renderer } from '@client/shared/types';
+import { GenerateMazeBy, MazeModel, MazeView } from '@client/maze';
 
-export class MazeController
-    extends MediatorComponent<MazeController, MazeEventType>
-    implements IRenderer, IObserver
-{
+export class MazeController extends MediatorComponentMixin<
+    MazeController,
+    MazeEventType
+>()(Renderer) {
     constructor(
         private readonly model: MazeModel,
         private readonly view: MazeView,
     ) {
-        super();
+        super(view.wrapper);
     }
 
-    update(subject: ISubject, event: INotifyEvent) {
-        if (
-            subject instanceof MazeModel &&
-            event instanceof MazeEvent &&
-            event.type === MazeEventType.Generate
-        ) {
-            this.mediator?.send(this, MazeEventType.Generate);
-        }
-    }
-
-    create(rows: number, cols: number): void {
-        this.model.attach(this);
+    async create(by: GenerateMazeBy, cellSizePx: number) {
         this.model.attach(this.view);
-        this.model.generate(rows, cols);
-    }
-    createByKey(key: string): void {
-        this.model.attach(this.view);
-        this.model.attach(this);
-        this.model.getByKey(key);
-    }
+        await this.model.generate(by, cellSizePx);
 
-    addRenderable(renderable: IRenderable) {
-        renderable.addTo(this.getContainer());
-    }
-    removeRenderable(renderable: IRenderable) {
-        renderable.removeFrom(this.getContainer());
-    }
-    getContainer(): HTMLElement {
-        return this.view.container;
+        this.mediator?.send(this, MazeEventType.Generate);
     }
 
     isPassage(direction: MovementDirection, cell: Cell): boolean {
         return this.model.isPassage(direction, cell);
-    }
-
-    getCellSizePx() {
-        return this.view.cellSizePx;
     }
 
     getRandomPassageCell(...exceptions: Cell[]): Cell {
@@ -71,12 +39,13 @@ export class MazeController
         );
     }
 
-    getState(): IMazeState {
+    getState(): IClientMazeState {
         return this.model.getState();
     }
 
     delete() {
-        this.view.delete();
         this.model.reset();
+        this.model.detach(this.view);
+        this.mediator?.send(this, MazeEventType.Delete);
     }
 }

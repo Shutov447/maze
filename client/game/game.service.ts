@@ -3,8 +3,8 @@ import {
     IObserver,
     IPlayerState,
     ISubject,
+    IWsPlayerResponse,
     PlayerEvent,
-    PlayerEventType,
 } from '@shared/types';
 import { env } from '@client/env';
 
@@ -12,37 +12,17 @@ export class GameService implements ISubject {
     private readonly socket = new WebSocket(`${env.WS}/player/ws`);
     private readonly observers = new Set<IObserver>();
 
+    private currentMoverPlayerState?: IPlayerState;
+
     constructor() {
         this.socket.onopen = () => {
             console.log('a server connected');
         };
         this.socket.onmessage = (event) => {
-            const {
-                player,
-                isGenerated,
-                isDeletedPlayer,
-                winnerId,
-            }: {
-                player: IPlayerState;
-                isGenerated: boolean;
-                isDeletedPlayer: boolean;
-                winnerId: number;
-            } = JSON.parse(event.data);
+            const { player, type }: IWsPlayerResponse = JSON.parse(event.data);
+            this.currentMoverPlayerState = player;
 
-            if (isDeletedPlayer) {
-                this.notify(new PlayerEvent(PlayerEventType.Delete), player);
-                return;
-            }
-            if (!isGenerated) {
-                this.notify(new PlayerEvent(PlayerEventType.Generate), player);
-                return;
-            }
-            if (winnerId) {
-                this.notify(new PlayerEvent(PlayerEventType.Win), player);
-                return;
-            }
-
-            this.notify(new PlayerEvent(PlayerEventType.Move), player);
+            this.notify(new PlayerEvent(type));
         };
     }
 
@@ -57,6 +37,10 @@ export class GameService implements ISubject {
         }
     }
 
+    getCurrentMoverPlayerState() {
+        return structuredClone(this.currentMoverPlayerState);
+    }
+
     async deletePlayer(id: number, mazeKey: string) {
         return await fetch(
             `${env.DOMAIN}/player/delete?id=${id}&mazeKey=${mazeKey}`,
@@ -66,7 +50,7 @@ export class GameService implements ISubject {
         );
     }
 
-    async finishGame(id: number, mazeKey: string) {
+    async winGame(id: number, mazeKey: string) {
         return await fetch(
             `${env.DOMAIN}/player/win?id=${id}&mazeKey=${mazeKey}`,
             {
