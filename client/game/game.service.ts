@@ -1,10 +1,15 @@
 import {
+    ChangedMazeMapCells,
     INotifyEvent,
     IObserver,
     IPlayerState,
     ISubject,
+    IWsPlayerRequest,
     IWsPlayerResponse,
+    MazeEvent,
+    MazeEventType,
     PlayerEvent,
+    PlayerEventType,
 } from '@shared/types';
 import { env } from '@client/env';
 
@@ -19,20 +24,26 @@ export class GameService implements ISubject {
             console.log('a server connected');
         };
         this.socket.onmessage = (event) => {
-            const { player, type }: IWsPlayerResponse = JSON.parse(event.data);
+            const { player, type, changedMazeMapCells }: IWsPlayerResponse =
+                JSON.parse(event.data);
             this.currentMoverPlayerState = player;
 
-            this.notify(new PlayerEvent(type));
+            // INFO: на самом деле плохое решение завязываться на changedMazeMapCells, если че просто под каждый ивент оповестить через switch case
+            changedMazeMapCells?.length
+                ? this.notify(new MazeEvent(type as MazeEventType), {
+                      changedMazeMapCells,
+                  })
+                : this.notify(new PlayerEvent(type as PlayerEventType));
         };
     }
 
-    send(player: IPlayerState, mazeKey: string) {
-        const data = JSON.stringify({ player, mazeKey });
+    send(data: IWsPlayerRequest) {
+        const payload = JSON.stringify(data);
         if (this.socket.readyState === WebSocket.OPEN) {
-            this.socket.send(data);
+            this.socket.send(payload);
         } else if (this.socket.readyState === WebSocket.CONNECTING) {
             this.socket.onopen = () => {
-                this.socket.send(data);
+                this.socket.send(payload);
             };
         }
     }
@@ -59,7 +70,10 @@ export class GameService implements ISubject {
         );
     }
 
-    notify(event: INotifyEvent, data?: IPlayerState): void {
+    notify(
+        event: INotifyEvent,
+        data?: { changedMazeMapCells?: ChangedMazeMapCells },
+    ): void {
         this.observers.forEach((observer) =>
             observer.update(this, event, data),
         );

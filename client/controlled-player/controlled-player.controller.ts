@@ -37,6 +37,27 @@ export class ControlledPlayerController extends MediatorComponentMixin<
         this.mediator?.send(this, PlayerEventType.Generate);
     }
 
+    private addInputHandlers(handlers: InputHandlerObject[]) {
+        this.inputHandlers = new Set(handlers);
+        this.inputHandlers.forEach((handler) =>
+            this.view.addInputHandler(handler),
+        );
+    }
+
+    override delete() {
+        super.delete();
+        this.removeAllInputHandlers();
+
+        this.mediator?.send(this, PlayerEventType.Delete);
+    }
+
+    private removeAllInputHandlers() {
+        this.inputHandlers.forEach((handler) =>
+            this.view.removeInputHandler(handler),
+        );
+        this.inputHandlers.clear();
+    }
+
     override move(direction: MovementDirection): void {
         super.move(direction);
 
@@ -47,26 +68,5 @@ export class ControlledPlayerController extends MediatorComponentMixin<
         console.log('WIN!');
 
         this.mediator?.send(this, PlayerEventType.Win);
-    }
-
-    override delete() {
-        super.delete();
-        this.removeAllInputHandlers();
-
-        this.mediator?.send(this, PlayerEventType.Delete);
-    }
-
-    private addInputHandlers(handlers: InputHandlerObject[]) {
-        this.inputHandlers = new Set(handlers);
-        this.inputHandlers.forEach((handler) =>
-            this.view.addInputHandler(handler),
-        );
-    }
-
-    private removeAllInputHandlers() {
-        this.inputHandlers.forEach((handler) =>
-            this.view.removeInputHandler(handler),
-        );
-        this.inputHandlers.clear();
     }
 }

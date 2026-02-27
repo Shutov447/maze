@@ -1,4 +1,4 @@
-import { Cell, INotifyEvent } from '@shared/types';
+import { Cell, CellState, INotifyEvent, MazeEventType } from '@shared/types';
 
 export class PlayerEvent implements INotifyEvent {
     constructor(readonly type: PlayerEventType) {}
@@ -18,9 +18,15 @@ export interface IPlayerState {
     sizePx: number;
 }
 
+export interface IWsPlayerRequest {
+    playerState: IPlayerState;
+    mazeKey: string;
+    changedMazeMapCells?: ChangedMazeMapCells;
+}
 export interface IWsPlayerResponse {
     player: IPlayerState;
-    type: PlayerEventType;
+    type: PlayerEventType | MazeEventType;
+    changedMazeMapCells?: ChangedMazeMapCells;
 }
 
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';
@@ -29,3 +35,4 @@ export type InputHandlerObject = [
     listener: EventListener,
 ];
 export type PlayerElem = HTMLElement;
+export type ChangedMazeMapCells = { cell: Cell; cellState: CellState }[];

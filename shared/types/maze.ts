@@ -25,6 +25,7 @@ export interface IMazeSibling {
 export enum MazeEventType {
     Generate,
     Delete,
+    ChangeCellState,
 }
 
 export type MazeStructure = MazeRow[];

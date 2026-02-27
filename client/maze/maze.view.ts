@@ -1,5 +1,6 @@
 import {
     Cell,
+    CellState,
     IClientMazeState,
     INotifyEvent,
     IObserver,
@@ -16,21 +17,36 @@ import { MazeModel } from '@client/maze';
 export class MazeView implements IObserver {
     readonly wrapper: MazeElem = document.createElement('div');
 
-    update(subject: ISubject, event: INotifyEvent) {
+    update(subject: ISubject, event: INotifyEvent, data?: any) {
         if (subject instanceof MazeModel && event instanceof MazeEvent) {
-            if (event.type === MazeEventType.Generate) {
-                this.clear();
-                this.render(subject.getState());
-
-                return;
-            }
-
-            if (event.type === MazeEventType.Delete) {
-                this.clear();
-
-                return;
+            switch (event.type) {
+                case MazeEventType.Generate:
+                    this.onGenerate(subject.getState());
+                    break;
+                case MazeEventType.Delete:
+                    this.onDelete();
+                    break;
+                case MazeEventType.ChangeCellState:
+                    if ('cell' in data && 'state' in data) {
+                        this.onChangeCellState(data.cell, data.state);
+                    }
+                    break;
             }
         }
+    }
+
+    onGenerate(state: IClientMazeState) {
+        this.clear();
+        this.render(state);
+    }
+    onDelete() {
+        this.clear();
+    }
+    onChangeCellState(cell: Cell, state: CellState) {
+        const cellElem = document.getElementById(generateId(cell));
+        if (!cellElem) return;
+
+        state ? this.styleToPassage(cellElem) : this.styleToWall(cellElem);
     }
 
     private render(state: IClientMazeState) {
@@ -67,10 +83,19 @@ export class MazeView implements IObserver {
 
             cellElem.style.width = cellSize + 'px';
             cellElem.style.height = cellSize + 'px';
-            cellElem.style.backgroundColor = cellState ? 'white' : 'black';
+            cellState
+                ? this.styleToPassage(cellElem)
+                : this.styleToWall(cellElem);
 
             this.wrapper.appendChild(cellElem);
         });
+    }
+
+    private styleToPassage(elem: HTMLElement) {
+        elem.style.backgroundColor = 'white';
+    }
+    private styleToWall(elem: HTMLElement) {
+        elem.style.backgroundColor = 'black';
     }
 
     private addFinish(cell: Cell) {

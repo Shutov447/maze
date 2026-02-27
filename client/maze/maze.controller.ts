@@ -1,5 +1,6 @@
 import {
     Cell,
+    CellState,
     IClientMazeState,
     MazeEventType,
     MediatorComponentMixin,
@@ -27,8 +28,15 @@ export class MazeController extends MediatorComponentMixin<
         this.mediator?.send(this, MazeEventType.Generate);
     }
 
+    setCellStateInMap(cell: Cell, state: CellState) {
+        this.model.setCellStateInMap(cell, state);
+    }
+
     isPassage(direction: MovementDirection, cell: Cell): boolean {
         return this.model.isPassage(direction, cell);
+    }
+    isWall(cell: Cell): boolean {
+        return this.model.isWall(cell);
     }
 
     getRandomPassageCell(...exceptions: Cell[]): Cell {
@@ -37,6 +45,10 @@ export class MazeController extends MediatorComponentMixin<
             this.model.getState().finishCell,
             ...exceptions,
         );
+    }
+
+    getMapBorders() {
+        return this.model.getMapBorders();
     }
 
     getState(): IClientMazeState {

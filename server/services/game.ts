@@ -1,21 +1,15 @@
 import {
+    ChangedMazeMapCells,
     IMazeState,
     IPlayerState,
     IWsPlayerResponse,
+    MazeEventType,
     PlayerEventType,
 } from '@shared/types';
 import { IGameState } from '@server/shared/types';
 
 class Game {
     private states: IGameState[] = [];
-
-    addMaze(maze: IMazeState) {
-        this.states.push({ mazeState: maze, playersState: [] });
-    }
-
-    deleteEmptyMazes() {
-        this.states = this.states.filter((state) => state.playersState.length);
-    }
 
     addPlayerOnMaze(player: IPlayerState, client: WebSocket, mazeKey: string) {
         const playersState = this.findGameState(mazeKey)?.playersState;
@@ -25,6 +19,23 @@ class Game {
         this.stateExchangeBetweenPlayers(mazeKey, {
             type: PlayerEventType.Generate,
         });
+    }
+
+    stateExchangeBetweenPlayers(
+        mazeKey: string,
+        response: Omit<IWsPlayerResponse, 'player'>,
+        ...exIds: number[]
+    ) {
+        this.findGameState(mazeKey)?.playersState.forEach((state) =>
+            this.sendToAllPlayersOnMaze(
+                mazeKey,
+                {
+                    player: state.player,
+                    ...response,
+                },
+                ...exIds,
+            ),
+        );
     }
 
     updatePlayerState(player: IPlayerState, mazeKey: string) {
@@ -46,6 +57,23 @@ class Game {
         );
     }
 
+    win(playerId: number, mazeKey: string) {
+        const player = this.findPlayerOnMaze(playerId, mazeKey);
+        if (player) {
+            this.sendToAllPlayersOnMaze(mazeKey, {
+                player,
+                type: PlayerEventType.Win,
+            });
+            this.deleteMaze(mazeKey);
+        }
+    }
+
+    deleteMaze(mazeKey: string) {
+        this.states = this.states.filter(
+            ({ mazeState }) => mazeState.key !== mazeKey,
+        );
+    }
+
     deletePlayer(id: number, mazeKey: string) {
         const state = this.findGameState(mazeKey);
         const player = this.findPlayerOnMaze(id, mazeKey);
@@ -61,6 +89,44 @@ class Game {
         });
     }
 
+    changeMazeMap(
+        playerId: IPlayerState['id'],
+        mazeKey: string,
+        changes: ChangedMazeMapCells,
+    ) {
+        const mazeMap = this.findGameState(mazeKey)?.mazeState.map;
+        if (!mazeMap) return;
+        const player = this.findPlayerOnMaze(playerId, mazeKey);
+        if (!player) return;
+
+        changes.forEach(
+            (change) =>
+                (mazeMap[change.cell[0]][change.cell[1]] = change.cellState),
+        );
+        this.sendToAllPlayersOnMaze(
+            mazeKey,
+            {
+                player,
+                type: MazeEventType.ChangeCellState,
+                changedMazeMapCells: changes,
+            },
+            playerId,
+        );
+    }
+
+    sendToAllPlayersOnMaze(
+        mazeKey: string,
+        response: IWsPlayerResponse,
+        ...exIds: number[]
+    ) {
+        const playersOnMaze = this.findGameState(mazeKey)?.playersState;
+        if (playersOnMaze)
+            playersOnMaze.forEach((state) => {
+                if (!exIds.includes(state.player.id))
+                    state.client.send(JSON.stringify(response));
+            });
+    }
+
     findPlayerOnMaze(id: number, mazeKey: string) {
         return this.findGameState(mazeKey)?.playersState.find(
             (playerState) => playerState.player.id === id,
@@ -71,51 +137,12 @@ class Game {
         return this.states.find(({ mazeState }) => mazeState.key === mazeKey);
     }
 
-    deleteMaze(mazeKey: string) {
-        this.states = this.states.filter(
-            ({ mazeState }) => mazeState.key !== mazeKey,
-        );
+    addMaze(maze: IMazeState) {
+        this.states.push({ mazeState: maze, playersState: [] });
     }
 
-    stateExchangeBetweenPlayers(
-        mazeKey: string,
-        response: Omit<IWsPlayerResponse, 'player'>,
-        ...exIds: number[]
-    ) {
-        this.findGameState(mazeKey)?.playersState.forEach((state) =>
-            this.sendToAllPlayersOnMaze(
-                mazeKey,
-                {
-                    player: state.player,
-                    ...response,
-                },
-                ...exIds,
-            ),
-        );
-    }
-
-    sendToAllPlayersOnMaze(
-        mazeKey: string,
-        response: IWsPlayerResponse,
-        ...exIds: number[]
-    ) {
-        const playersOnMaze = game.findGameState(mazeKey)?.playersState;
-        if (playersOnMaze)
-            playersOnMaze.forEach((state) => {
-                if (!exIds.includes(state.player.id))
-                    state.client.send(JSON.stringify(response));
-            });
-    }
-
-    win(playerId: number, mazeKey: string) {
-        const player = this.findPlayerOnMaze(playerId, mazeKey);
-        if (player) {
-            this.sendToAllPlayersOnMaze(mazeKey, {
-                player,
-                type: PlayerEventType.Win,
-            });
-            game.deleteMaze(mazeKey);
-        }
+    deleteEmptyMazes() {
+        this.states = this.states.filter((state) => state.playersState.length);
     }
 }
 

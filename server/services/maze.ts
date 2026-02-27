@@ -160,7 +160,7 @@ export class Maze {
 
     private toPassageOrWall() {
         this.localMaze = this.localMaze.map((row) =>
-            row.map((col) => (col === this.VISITED ? 1 : col)),
+            row.map((col) => (col === this.VISITED ? this.PASSAGE : col)),
         );
     }
 
@@ -177,6 +177,8 @@ export class Maze {
         this.localMaze.forEach((row) => (row[0] = this.WALL));
         this.localMaze.forEach((row) => (row[row.length - 1] = this.WALL));
 
+        this.state.rows = this.localMaze.length;
+        this.state.cols = this.localMaze[0].length;
         return this.localMaze as MazeStructure;
     }
 

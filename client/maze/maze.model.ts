@@ -1,5 +1,6 @@
 import {
     Cell,
+    CellState,
     IClientMazeState,
     IMazeState,
     INotifyEvent,
@@ -58,8 +59,32 @@ export class MazeModel implements ISubject {
         this.notify(new MazeEvent(MazeEventType.Generate));
     }
 
-    notify(eventType: INotifyEvent): void {
-        this.observers.forEach((observer) => observer.update(this, eventType));
+    setCellStateInMap(cell: Cell, state: CellState) {
+        this.state.map[cell[0]][cell[1]] = state;
+
+        this.notify(new MazeEvent(MazeEventType.ChangeCellState), {
+            cell,
+            state,
+        });
+    }
+
+    reset() {
+        this.state = {
+            cols: 0,
+            rows: 0,
+            finishCell: [0, 0],
+            map: [],
+            key: '',
+            cellSizePx: 20,
+        };
+
+        this.notify(new MazeEvent(MazeEventType.Delete));
+    }
+
+    notify(eventType: INotifyEvent, data?: any): void {
+        this.observers.forEach((observer) =>
+            observer.update(this, eventType, data),
+        );
     }
     attach(observer: IObserver): void {
         this.observers.add(observer);
@@ -83,20 +108,29 @@ export class MazeModel implements ISubject {
         return passageFinder[direction]();
     }
 
-    getState(): IClientMazeState {
-        return structuredClone(this.state);
+    isWall(cell: Cell): boolean {
+        return this.state.map[cell[0]][cell[1]] === this.WALL;
     }
 
-    reset() {
-        this.state = {
-            cols: 0,
-            rows: 0,
-            finishCell: [0, 0],
-            map: [],
-            key: '',
-            cellSizePx: 20,
-        };
+    getMapBorders(): Cell[] {
+        const up: Cell[] = [];
+        for (let i = 0; i < this.state.cols; i++) up.push([0, i]);
 
-        this.notify(new MazeEvent(MazeEventType.Delete));
+        const down: Cell[] = [];
+        const maxRowIndex = this.state.rows - 1;
+        for (let i = 0; i < this.state.cols; i++) down.push([maxRowIndex, i]);
+
+        const left: Cell[] = [];
+        for (let i = 0; i < this.state.rows; i++) left.push([i, 0]);
+
+        const right: Cell[] = [];
+        const maxColIndex = this.state.rows - 1;
+        for (let i = 0; i < this.state.rows; i++) right.push([i, maxColIndex]);
+
+        return [...up, ...down, ...left, ...right];
+    }
+
+    getState(): IClientMazeState {
+        return structuredClone(this.state);
     }
 }

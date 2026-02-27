@@ -1,8 +1,11 @@
 import {
+    ChangedMazeMapCells,
     INotifyEvent,
     IObserver,
     IPlayerState,
     ISubject,
+    MazeEvent,
+    MazeEventType,
     MovementDirection,
     PlayerEvent,
     PlayerEventType,
@@ -28,38 +31,58 @@ export class RemotePlayersManager implements IObserver {
         this.maze = maze;
     }
 
-    async update(subject: ISubject, event: INotifyEvent) {
-        if (subject instanceof GameService && event instanceof PlayerEvent) {
-            if (event.type === PlayerEventType.Win) {
-                this.deleteAll();
-                await subject.deletePlayer(
-                    this.controlledPlayerState!.id,
-                    this.maze!.getState().key,
-                );
-                this.finishGame();
+    async update(
+        subject: ISubject,
+        event: INotifyEvent,
+        data?: { changedMazeMapCells?: ChangedMazeMapCells },
+    ) {
+        if (subject instanceof GameService) {
+            if (event instanceof PlayerEvent) {
+                if (event.type === PlayerEventType.Win) {
+                    this.deleteAll();
+                    await subject.deletePlayer(
+                        this.controlledPlayerState!.id,
+                        this.maze!.getState().key,
+                    );
+                    this.finishGame();
+                    return;
+                }
 
+                const currentMoverPlayer = subject.getCurrentMoverPlayerState();
+                if (!currentMoverPlayer) return;
+                const isThisMe =
+                    currentMoverPlayer.id === this.controlledPlayerState?.id;
+                if (isThisMe) return;
+
+                switch (event.type) {
+                    case PlayerEventType.Move:
+                        this.move(
+                            currentMoverPlayer.id,
+                            currentMoverPlayer.lastMove!,
+                        );
+                        break;
+                    case PlayerEventType.Generate:
+                        this.create(currentMoverPlayer);
+                        break;
+                    case PlayerEventType.Delete:
+                        this.delete(currentMoverPlayer.id);
+                        break;
+                }
                 return;
             }
 
-            const currentMoverPlayer = subject.getCurrentMoverPlayerState();
-            if (!currentMoverPlayer) return;
-            const isThisMe =
-                currentMoverPlayer.id === this.controlledPlayerState?.id;
-            if (isThisMe) return;
-
-            switch (event.type) {
-                case PlayerEventType.Move:
-                    this.move(
-                        currentMoverPlayer.id,
-                        currentMoverPlayer.lastMove!,
-                    );
-                    break;
-                case PlayerEventType.Generate:
-                    this.create(currentMoverPlayer);
-                    break;
-                case PlayerEventType.Delete:
-                    this.delete(currentMoverPlayer.id);
-                    break;
+            if (event instanceof MazeEvent) {
+                switch (event.type) {
+                    case MazeEventType.ChangeCellState:
+                        data?.changedMazeMapCells?.forEach((change) =>
+                            this.maze?.setCellStateInMap(
+                                change.cell,
+                                change.cellState,
+                            ),
+                        );
+                        break;
+                }
+                return;
             }
         }
     }

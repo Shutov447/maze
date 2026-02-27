@@ -1,4 +1,4 @@
-import { IPlayerState } from '@shared/types';
+import { IWsPlayerRequest } from '@shared/types';
 import { game } from '@server/services';
 import { Controller, Get } from '@server/router/decorators';
 
@@ -29,15 +29,28 @@ export class PlayerController {
 
     private onWsMessage(socket: WebSocket) {
         socket.onmessage = (ev) => {
-            const current: { player: IPlayerState; mazeKey: string } =
-                JSON.parse(ev.data);
+            const current: IWsPlayerRequest = JSON.parse(ev.data);
+
+            if (current.changedMazeMapCells) {
+                game.changeMazeMap(
+                    current.playerState.id,
+                    current.mazeKey,
+                    current.changedMazeMapCells,
+                );
+                return;
+            }
+
             const playerExistOnMaze = !!game.findPlayerOnMaze(
-                current.player.id,
+                current.playerState.id,
                 current.mazeKey,
             );
             playerExistOnMaze
-                ? game.updatePlayerState(current.player, current.mazeKey)
-                : game.addPlayerOnMaze(current.player, socket, current.mazeKey);
+                ? game.updatePlayerState(current.playerState, current.mazeKey)
+                : game.addPlayerOnMaze(
+                      current.playerState,
+                      socket,
+                      current.mazeKey,
+                  );
         };
     }
 
