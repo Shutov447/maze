@@ -15,7 +15,7 @@ class Game {
         const playersState = this.findGameState(mazeKey)?.playersState;
         if (!playersState) return;
 
-        playersState.push({ player, client });
+        playersState.set(player.id, { player, client });
         this.stateExchangeBetweenPlayers(mazeKey, {
             type: PlayerEventType.Generate,
         });
@@ -42,10 +42,9 @@ class Game {
         const state = this.findGameState(mazeKey);
         if (!state) return;
 
-        const playerIndex = state.playersState.findIndex(
-            (playerState) => playerState.player.id === player.id,
-        );
-        state.playersState[playerIndex].player = player;
+        const playerState = state.playersState.get(player.id);
+        if (!playerState) return;
+        state.playersState.set(player.id, { ...playerState, player });
 
         this.sendToAllPlayersOnMaze(
             mazeKey,
@@ -87,9 +86,7 @@ class Game {
             type: PlayerEventType.Delete,
         });
 
-        state.playersState = state.playersState.filter(
-            (state) => state.player.id !== id,
-        );
+        state.playersState.delete(id);
     }
 
     changeMazeMap(
@@ -131,9 +128,7 @@ class Game {
     }
 
     findPlayerOnMaze(id: number, mazeKey: string) {
-        return this.findGameState(mazeKey)?.playersState.find(
-            (playerState) => playerState.player.id === id,
-        )?.player;
+        return this.findGameState(mazeKey)?.playersState.get(id)?.player;
     }
 
     findGameState(mazeKey: string): IGameState | undefined {
@@ -141,11 +136,11 @@ class Game {
     }
 
     addMaze(maze: IMazeState) {
-        this.states.push({ mazeState: maze, playersState: [] });
+        this.states.push({ mazeState: maze, playersState: new Map() });
     }
 
     deleteEmptyMazes() {
-        this.states = this.states.filter((state) => state.playersState.length);
+        this.states = this.states.filter((state) => state.playersState.size);
     }
 
     activateRandomMovementAbility(playerId: number, mazeKey: string) {
