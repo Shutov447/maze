@@ -8,6 +8,7 @@ export enum PlayerEventType {
     Move,
     Delete,
     Win,
+    RandomMovementAbility,
 }
 
 export interface IPlayerState {
@@ -18,18 +19,28 @@ export interface IPlayerState {
     sizePx: number;
 }
 
+export interface AdditionalData {
+    changedMazeMapCells?: ChangedMazeMapCells;
+    activatedRemoteRandomMovementDirection?: boolean;
+}
 export interface IWsPlayerRequest {
     playerState: IPlayerState;
     mazeKey: string;
-    changedMazeMapCells?: ChangedMazeMapCells;
+    // TODO: занести в общий тип
+    additionalData?: AdditionalData;
 }
 export interface IWsPlayerResponse {
     player: IPlayerState;
     type: PlayerEventType | MazeEventType;
     changedMazeMapCells?: ChangedMazeMapCells;
+    // additionalData?: Omit<
+    //     AdditionalData,
+    //     'activatedRemoteRandomMovementDirection'
+    // >;
 }
 
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';
+
 export type InputHandlerObject = [
     type: keyof HTMLElementEventMap,
     listener: EventListener,

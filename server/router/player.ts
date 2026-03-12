@@ -31,7 +31,15 @@ export class PlayerController {
         socket.onmessage = (ev) => {
             const current: IWsPlayerRequest = JSON.parse(ev.data);
 
-            if (current.changedMazeMapCells) {
+            if (current.activatedRemoteRandomMovementDirection) {
+                game.activateRandomMovementAbility(
+                    current.playerState.id,
+                    current.mazeKey,
+                );
+                return;
+            }
+
+            if (current.changedMazeMapCells?.length) {
                 game.changeMazeMap(
                     current.playerState.id,
                     current.mazeKey,

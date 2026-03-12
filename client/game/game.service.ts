@@ -72,7 +72,10 @@ export class GameService implements ISubject {
 
     notify(
         event: INotifyEvent,
-        data?: { changedMazeMapCells?: ChangedMazeMapCells },
+
+        data?: {
+            changedMazeMapCells?: ChangedMazeMapCells;
+        },
     ): void {
         this.observers.forEach((observer) =>
             observer.update(this, event, data),

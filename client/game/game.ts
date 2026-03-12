@@ -1,21 +1,27 @@
-import {
-    Cell,
-    IMediator,
-    InputHandlerObject,
-    MazeEventType,
-    MovementDirection,
-    Passage,
-    PlayerEventType,
-} from '@shared/types';
+import { IMediator, MazeEventType, PlayerEventType } from '@shared/types';
 import { cellsEqual } from '@shared/utils';
 import { GenerateMazeBy, MazeController } from '@client/maze';
 import { ControlledPlayerController } from '@client/controlled-player';
 import { RemotePlayersManager } from '@client/remote-players';
-import { GameEvent, GameSender, GameService } from '@client/game';
+import {
+    GameEvent,
+    GameSender,
+    GameService,
+    MovementAbility,
+    WallDestructionAbility,
+    RemotePlayersRandomMovementAbility,
+    getRandomAbility,
+    HelperRemotePlayersRandomMovement,
+} from '@client/game';
+
+export enum AbilityType {
+    WallDestruction,
+    Movement,
+}
 
 export class Game implements IMediator<GameSender, GameEvent> {
-    private readonly service = new GameService();
     private readonly remotePlayersMgr = new RemotePlayersManager();
+    private readonly service = new GameService();
 
     constructor(
         private readonly maze: MazeController,
@@ -23,6 +29,7 @@ export class Game implements IMediator<GameSender, GameEvent> {
     ) {
         this.maze.setMediator(this);
         this.player.setMediator(this);
+        this.remotePlayersMgr.setControlledPlayer(player);
         this.remotePlayersMgr.setMaze(maze);
         this.service.attach(this.remotePlayersMgr);
     }
@@ -44,122 +51,74 @@ export class Game implements IMediator<GameSender, GameEvent> {
             this.handlePlayerEvent(event as PlayerEventType);
     }
 
-    private readonly playerMovementHandlerObject: InputHandlerObject = [
-        'keydown',
-        (ev: Event): void => {
-            if (!(ev instanceof KeyboardEvent)) return;
-
-            const key = ev.key;
-            if (!key.includes('Arrow')) return;
-
-            const currentCell = this.player.getState().currentCell;
-            const direction = key.replace('Arrow', '') as MovementDirection;
-            if (this.maze.isPassage(direction, currentCell))
-                this.player.move(direction);
-        },
-    ];
-    private wallDestructionTrigger = true;
-    private readonly playerWallDestructionHandlerObject: InputHandlerObject = [
-        'keydown',
-        (ev: Event): void => {
-            if (!this.wallDestructionTrigger) return;
-            if (!(ev instanceof KeyboardEvent)) return;
-            if (!(ev.key === ' ')) return;
-
-            const currentCell = this.player.getState().currentCell;
-            const mazeCellsToDestroy =
-                this.getBreakingMazeCellsAroundPlayer(currentCell);
-            const passage: Passage = 1;
-            mazeCellsToDestroy.forEach((cell) =>
-                this.maze.setCellStateInMap(cell, passage),
-            );
-
-            if (!mazeCellsToDestroy.length) return;
-
-            // TODO: возможно сделать сокет у maze контроллера и через него передавать эти изменения карты
-            this.service.send({
-                playerState: this.player.getState(),
-                mazeKey: this.maze.getState().key,
-                changedMazeMapCells: mazeCellsToDestroy.map((cell) => ({
-                    cell,
-                    cellState: passage,
-                })),
-            });
-
-            this.wallDestructionTrigger = false;
-            const timerId = setTimeout(() => {
-                this.wallDestructionTrigger = true;
-                clearTimeout(timerId);
-            }, 30000);
-        },
-    ];
-    private getBreakingMazeCellsAroundPlayer = (playerCell: Cell): Cell[] => {
-        const siblingTouchingCells: Cell[] = [
-            [playerCell[0], playerCell[1] - 1],
-            [playerCell[0] + 1, playerCell[1]],
-            [playerCell[0], playerCell[1] + 1],
-            [playerCell[0] - 1, playerCell[1]],
-        ];
-        const siblingCellsDiagonally: Cell[] = [
-            [playerCell[0] - 1, playerCell[1] - 1],
-            [playerCell[0] - 1, playerCell[1] + 1],
-            [playerCell[0] + 1, playerCell[1] + 1],
-            [playerCell[0] + 1, playerCell[1] - 1],
-        ];
-        const cellAroundPlayerWithoutBorders = [
-            ...siblingTouchingCells,
-            ...siblingCellsDiagonally,
-        ].filter((cell) => {
-            return !this.maze
-                .getMapBorders()
-                .map(
-                    (borderCell) =>
-                        borderCell[0] === cell[0] && borderCell[1] === cell[1],
-                )
-                .includes(true);
-        });
-
-        return cellAroundPlayerWithoutBorders.filter((cell) =>
-            this.maze.isWall(cell),
-        );
-    };
-
-    private handleMazeEvent(event: MazeEventType) {
+    async handleMazeEvent(event: MazeEventType) {
         switch (event) {
-            case MazeEventType.Generate:
-                this.player.create(
-                    this.maze.getRandomPassageCell(),
-                    this.maze.getState().cellSizePx,
-                    [
-                        this.playerMovementHandlerObject,
-                        this.playerWallDestructionHandlerObject,
-                    ],
-                );
+            case MazeEventType.Generate: {
+                await this.onMazeGenerate();
+                break;
+            }
+        }
+    }
+    async onMazeGenerate() {
+        const movement = new MovementAbility(
+            this.maze,
+            this.player,
+        ).getInputHandlerObject();
+
+        const specialAbility = getRandomAbility(
+            [RemotePlayersRandomMovementAbility, WallDestructionAbility],
+            this.maze,
+            this.player,
+            this.service,
+            movement,
+            7000,
+            10000,
+        );
+        if (!specialAbility) return;
+
+        await this.player.create(
+            this.maze.getRandomPassageCell(),
+            this.maze.getState().cellSizePx,
+            [movement, specialAbility.getInputHandlerObject()],
+        );
+
+        new HelperRemotePlayersRandomMovement(
+            this.maze,
+            this.player,
+            movement,
+            7000,
+            this.service,
+        );
+    }
+
+    async handlePlayerEvent(event: PlayerEventType) {
+        switch (event) {
+            case PlayerEventType.Generate:
+                this.onPlayerGenerate();
+                break;
+            case PlayerEventType.Move:
+                this.onPlayerMove();
+                break;
+            case PlayerEventType.Win:
+                await this.onPlayerWin();
                 break;
         }
     }
-
-    private async handlePlayerEvent(event: PlayerEventType) {
+    onPlayerGenerate() {
         const playerState = this.player.getState();
         const mazeKey = this.maze.getState().key;
-
-        switch (event) {
-            case PlayerEventType.Move:
-                this.isPlayerOnFinishCell()
-                    ? this.player.win()
-                    : this.service.send({ playerState, mazeKey });
-                break;
-            case PlayerEventType.Generate:
-                this.remotePlayersMgr.setControlledPlayerState(
-                    this.player.getState(),
-                );
-                this.maze.addRenderable(this.player);
-                this.service.send({ playerState, mazeKey });
-                break;
-            case PlayerEventType.Win:
-                await this.finishGame();
-                break;
-        }
+        this.maze.addRenderable(this.player);
+        this.service.send({ playerState, mazeKey });
+    }
+    onPlayerMove() {
+        const playerState = this.player.getState();
+        const mazeKey = this.maze.getState().key;
+        this.isPlayerOnFinishCell()
+            ? this.player.win()
+            : this.service.send({ playerState, mazeKey });
+    }
+    async onPlayerWin() {
+        await this.finishGame();
     }
 
     private isPlayerOnFinishCell() {

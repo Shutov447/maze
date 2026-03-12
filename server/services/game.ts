@@ -64,6 +64,9 @@ class Game {
                 player,
                 type: PlayerEventType.Win,
             });
+            this.findGameState(mazeKey)?.playersState.forEach(({ player }) =>
+                this.deletePlayer(player.id, mazeKey),
+            );
             this.deleteMaze(mazeKey);
         }
     }
@@ -79,14 +82,14 @@ class Game {
         const player = this.findPlayerOnMaze(id, mazeKey);
         if (!(state && player)) return;
 
-        state.playersState = state.playersState.filter(
-            (state) => state.player.id !== id,
-        );
-
         this.sendToAllPlayersOnMaze(mazeKey, {
             player,
             type: PlayerEventType.Delete,
         });
+
+        state.playersState = state.playersState.filter(
+            (state) => state.player.id !== id,
+        );
     }
 
     changeMazeMap(
@@ -143,6 +146,16 @@ class Game {
 
     deleteEmptyMazes() {
         this.states = this.states.filter((state) => state.playersState.length);
+    }
+
+    activateRandomMovementAbility(playerId: number, mazeKey: string) {
+        const player = this.findPlayerOnMaze(playerId, mazeKey);
+        if (!player) return;
+
+        this.sendToAllPlayersOnMaze(mazeKey, {
+            player,
+            type: PlayerEventType.RandomMovementAbility,
+        });
     }
 }
 
