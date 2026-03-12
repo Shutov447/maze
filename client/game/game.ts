@@ -1,11 +1,17 @@
-import { IMediator, MazeEventType, PlayerEventType } from '@shared/types';
+import {
+    INotifyEvent,
+    IObserver,
+    ISubject,
+    MazeEvent,
+    MazeEventType,
+    PlayerEvent,
+    PlayerEventType,
+} from '@shared/types';
 import { cellsEqual } from '@shared/utils';
 import { GenerateMazeBy, MazeController } from '@client/maze';
 import { ControlledPlayerController } from '@client/controlled-player';
 import { RemotePlayersManager } from '@client/remote-players';
 import {
-    GameEvent,
-    GameSender,
     GameService,
     MovementAbility,
     WallDestructionAbility,
@@ -14,12 +20,7 @@ import {
     HelperRemotePlayersRandomMovement,
 } from '@client/game';
 
-export enum AbilityType {
-    WallDestruction,
-    Movement,
-}
-
-export class Game implements IMediator<GameSender, GameEvent> {
+export class Game implements IObserver {
     private readonly remotePlayersMgr = new RemotePlayersManager();
     private readonly service = new GameService();
 
@@ -27,8 +28,8 @@ export class Game implements IMediator<GameSender, GameEvent> {
         private readonly maze: MazeController,
         private readonly player: ControlledPlayerController,
     ) {
-        this.maze.setMediator(this);
-        this.player.setMediator(this);
+        this.maze.attach(this);
+        this.player.attach(this);
         this.remotePlayersMgr.setControlledPlayer(player);
         this.remotePlayersMgr.setMaze(maze);
         this.service.attach(this.remotePlayersMgr);
@@ -44,11 +45,14 @@ export class Game implements IMediator<GameSender, GameEvent> {
         await this.maze.create(by, cellSizePx);
     }
 
-    send(sender: GameSender, event: GameEvent) {
-        if (sender instanceof MazeController)
-            this.handleMazeEvent(event as MazeEventType);
-        else if (sender instanceof ControlledPlayerController)
-            this.handlePlayerEvent(event as PlayerEventType);
+    update(subject: ISubject, event: INotifyEvent) {
+        if (subject instanceof MazeController && event instanceof MazeEvent)
+            this.handleMazeEvent(event.type);
+        else if (
+            subject instanceof ControlledPlayerController &&
+            event instanceof PlayerEvent
+        )
+            this.handlePlayerEvent(event.type);
     }
 
     async handleMazeEvent(event: MazeEventType) {

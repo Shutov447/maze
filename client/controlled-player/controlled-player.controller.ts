@@ -1,7 +1,6 @@
 import {
     Cell,
     InputHandlerObject,
-    MediatorComponentMixin,
     PlayerEventType,
     MovementDirection,
     IObserver,
@@ -16,10 +15,7 @@ import {
 } from '@client/controlled-player';
 
 export class ControlledPlayerController
-    extends MediatorComponentMixin<
-        ControlledPlayerController,
-        PlayerEventType
-    >()(BasePlayerController)
+    extends BasePlayerController
     implements ISubject
 {
     private inputHandlers: Set<InputHandlerObject> = new Set();
@@ -42,7 +38,6 @@ export class ControlledPlayerController
         this.addInputHandlers(inputHandlers);
 
         this.notify(new PlayerEvent(PlayerEventType.Generate));
-        this.mediator?.send(this, PlayerEventType.Generate);
     }
 
     override delete() {
@@ -50,7 +45,6 @@ export class ControlledPlayerController
         this.removeAllInputHandlers();
 
         this.notify(new PlayerEvent(PlayerEventType.Delete));
-        this.mediator?.send(this, PlayerEventType.Delete);
     }
 
     addInputHandlers(handlers: InputHandlerObject[]) {
@@ -76,17 +70,14 @@ export class ControlledPlayerController
         super.move(direction);
 
         this.notify(new PlayerEvent(PlayerEventType.Move));
-        this.mediator?.send(this, PlayerEventType.Move);
     }
 
     win() {
         console.log('WIN!');
 
         this.notify(new PlayerEvent(PlayerEventType.Win));
-        this.mediator?.send(this, PlayerEventType.Win);
     }
 
-    // TODO: походу оставляем это и надо будет убрать медиатор
     private readonly observers = new Set<IObserver>();
     notify(event: INotifyEvent): void {
         this.observers.forEach((observer) => observer.update(this, event));

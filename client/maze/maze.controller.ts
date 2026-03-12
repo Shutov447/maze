@@ -2,18 +2,18 @@ import {
     Cell,
     CellState,
     IClientMazeState,
+    INotifyEvent,
+    IObserver,
+    ISubject,
+    MazeEvent,
     MazeEventType,
-    MediatorComponentMixin,
     MovementDirection,
 } from '@shared/types';
 import { findRandomPassageCell } from '@shared/utils';
 import { Renderer } from '@client/shared/types';
 import { GenerateMazeBy, MazeModel, MazeView } from '@client/maze';
 
-export class MazeController extends MediatorComponentMixin<
-    MazeController,
-    MazeEventType
->()(Renderer) {
+export class MazeController extends Renderer implements ISubject {
     constructor(
         private readonly model: MazeModel,
         private readonly view: MazeView,
@@ -25,7 +25,7 @@ export class MazeController extends MediatorComponentMixin<
         this.model.attach(this.view);
         await this.model.generate(by, cellSizePx);
 
-        this.mediator?.send(this, MazeEventType.Generate);
+        this.notify(new MazeEvent(MazeEventType.Generate));
     }
 
     setCellStateInMap(cell: Cell, state: CellState) {
@@ -58,6 +58,17 @@ export class MazeController extends MediatorComponentMixin<
     delete() {
         this.model.reset();
         this.model.detach(this.view);
-        this.mediator?.send(this, MazeEventType.Delete);
+        this.notify(new MazeEvent(MazeEventType.Delete));
+    }
+
+    private readonly observers = new Set<IObserver>();
+    notify(event: INotifyEvent): void {
+        this.observers.forEach((observer) => observer.update(this, event));
+    }
+    attach(observer: IObserver): void {
+        this.observers.add(observer);
+    }
+    detach(observer: IObserver): void {
+        this.observers.delete(observer);
     }
 }
