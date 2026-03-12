@@ -84,21 +84,13 @@ export class RandomMovementAbility
 
         this.directionsMap = this.getRandomMovementDirections();
 
-        // TODO: пока оставлю логи, но позже все равно убрать надо
-        console.log('before removeInputHandler');
-        this.player.consoleHandlers();
         this.player.removeInputHandler(this.mainMovementHandlerObject);
-        console.log('after removeInputHandler');
-        this.player.consoleHandlers();
-
         this.player.addInputHandler(this.movementHandlerObject);
-        console.log('random');
 
         this.changeTrigger = false;
         this.changeMovementTimerId = setTimeout(() => {
             this.player.removeInputHandler(this.movementHandlerObject);
             this.player.addInputHandler(this.mainMovementHandlerObject);
-            console.log('main');
 
             this.changeTrigger = true;
             clearTimeout(this.changeMovementTimerId);

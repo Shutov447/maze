@@ -18,7 +18,6 @@ export type GenerateMazeBy =
     | [IMazeState['rows'], IMazeState['cols']];
 
 export class MazeModel implements ISubject {
-    private readonly observers = new Set<IObserver>();
     private readonly WALL: Wall = 0;
 
     private state: IClientMazeState = {
@@ -81,6 +80,7 @@ export class MazeModel implements ISubject {
         this.notify(new MazeEvent(MazeEventType.Delete));
     }
 
+    private readonly observers = new Set<IObserver>();
     notify(eventType: INotifyEvent, data?: any): void {
         this.observers.forEach((observer) =>
             observer.update(this, eventType, data),

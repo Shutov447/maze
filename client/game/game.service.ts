@@ -16,7 +16,6 @@ import { env } from '@client/env';
 
 export class GameService implements ISubject {
     private readonly socket = new WebSocket(`${env.WS}/player/ws`);
-    private readonly observers = new Set<IObserver>();
 
     private currentMoverPlayerState?: IPlayerState;
 
@@ -78,6 +77,7 @@ export class GameService implements ISubject {
         );
     }
 
+    private readonly observers = new Set<IObserver>();
     notify(event: INotifyEvent, data?: ResponseAdditionalData): void {
         this.observers.forEach((observer) =>
             observer.update(this, event, data),

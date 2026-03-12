@@ -34,7 +34,6 @@ export class HelperRemotePlayersRandomMovement extends RandomMovementAbility {
                         const isThisMe =
                             subject.getCurrentMoverPlayerState()?.id ===
                             this.player.getState().id;
-                        console.log(isThisMe);
                         if (isThisMe) return;
 
                         this.onRandomMovementAbility();

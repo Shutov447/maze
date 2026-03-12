@@ -22,18 +22,6 @@ export class ControlledPlayerController
     >()(BasePlayerController)
     implements ISubject
 {
-    // TODO: походу оставляем это и надо будет убрать медиатор
-    protected readonly observers = new Set<IObserver>();
-    notify(event: INotifyEvent): void {
-        this.observers.forEach((observer) => observer.update(this, event));
-    }
-    attach(observer: IObserver): void {
-        this.observers.add(observer);
-    }
-    detach(observer: IObserver): void {
-        this.observers.delete(observer);
-    }
-
     private inputHandlers: Set<InputHandlerObject> = new Set();
 
     constructor(
@@ -98,8 +86,15 @@ export class ControlledPlayerController
         this.mediator?.send(this, PlayerEventType.Win);
     }
 
-    // убрать
-    consoleHandlers() {
-        console.log(this.inputHandlers);
+    // TODO: походу оставляем это и надо будет убрать медиатор
+    private readonly observers = new Set<IObserver>();
+    notify(event: INotifyEvent): void {
+        this.observers.forEach((observer) => observer.update(this, event));
+    }
+    attach(observer: IObserver): void {
+        this.observers.add(observer);
+    }
+    detach(observer: IObserver): void {
+        this.observers.delete(observer);
     }
 }

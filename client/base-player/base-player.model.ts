@@ -9,8 +9,6 @@ import {
 } from '@shared/types';
 
 export class BasePlayerModel implements ISubject {
-    protected readonly observers = new Set<IObserver>();
-
     protected state: IPlayerState = {
         currentCell: [0, 0],
         lastMove: null,
@@ -39,6 +37,7 @@ export class BasePlayerModel implements ISubject {
         this.state.currentCell[0]--;
     }
 
+    private readonly observers = new Set<IObserver>();
     notify(event: INotifyEvent): void {
         this.observers.forEach((observer) => observer.update(this, event));
     }

@@ -38,11 +38,8 @@ export class RemotePlayersRandomMovementAbility extends RandomMovementAbility {
             });
 
             this.cooldownTrigger = false;
-            console.log('cooldown start');
-
             this.cooldownTimerId = setTimeout(() => {
                 this.cooldownTrigger = true;
-                console.log('cooldown end');
 
                 clearTimeout(this.cooldownTimerId);
             }, this.cooldownTimeMs);
