@@ -10,6 +10,7 @@ import {
     MazeEventType,
     PlayerEvent,
     PlayerEventType,
+    ResponseAdditionalData,
 } from '@shared/types';
 import { env } from '@client/env';
 
@@ -24,16 +25,23 @@ export class GameService implements ISubject {
             console.log('a server connected');
         };
         this.socket.onmessage = (event) => {
-            const { player, type, changedMazeMapCells }: IWsPlayerResponse =
+            const { player, type, additionalData }: IWsPlayerResponse =
                 JSON.parse(event.data);
             this.currentMoverPlayerState = player;
 
             // INFO: на самом деле плохое решение завязываться на changedMazeMapCells, если че просто под каждый ивент оповестить через switch case
-            changedMazeMapCells?.length
-                ? this.notify(new MazeEvent(type as MazeEventType), {
-                      changedMazeMapCells,
-                  })
-                : this.notify(new PlayerEvent(type as PlayerEventType));
+            if (additionalData) {
+                const { changedMazeMapCells } = additionalData;
+                if (changedMazeMapCells?.length) {
+                    this.notify(new MazeEvent(type as MazeEventType), {
+                        changedMazeMapCells,
+                    });
+                    return;
+                }
+                return;
+            }
+
+            this.notify(new PlayerEvent(type as PlayerEventType));
         };
     }
 
@@ -70,13 +78,7 @@ export class GameService implements ISubject {
         );
     }
 
-    notify(
-        event: INotifyEvent,
-
-        data?: {
-            changedMazeMapCells?: ChangedMazeMapCells;
-        },
-    ): void {
+    notify(event: INotifyEvent, data?: ResponseAdditionalData): void {
         this.observers.forEach((observer) =>
             observer.update(this, event, data),
         );

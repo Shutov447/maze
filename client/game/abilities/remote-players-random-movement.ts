@@ -32,7 +32,9 @@ export class RemotePlayersRandomMovementAbility extends RandomMovementAbility {
             this.gameService.send({
                 playerState: this.player.getState(),
                 mazeKey: this.maze.getState().key,
-                activatedRemoteRandomMovementDirection: true,
+                additionalData: {
+                    activatedRemoteRandomMovementDirection: true,
+                },
             });
 
             this.cooldownTrigger = false;

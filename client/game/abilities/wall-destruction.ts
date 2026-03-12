@@ -37,10 +37,12 @@ export class WallDestructionAbility implements IAbility {
             this.gameService.send({
                 playerState: this.player.getState(),
                 mazeKey: this.maze.getState().key,
-                changedMazeMapCells: mazeCellsToDestroy.map((cell) => ({
-                    cell,
-                    cellState: passage,
-                })),
+                additionalData: {
+                    changedMazeMapCells: mazeCellsToDestroy.map((cell) => ({
+                        cell,
+                        cellState: passage,
+                    })),
+                },
             });
 
             this.cooldownTrigger = false;

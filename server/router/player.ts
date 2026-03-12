@@ -31,20 +31,28 @@ export class PlayerController {
         socket.onmessage = (ev) => {
             const current: IWsPlayerRequest = JSON.parse(ev.data);
 
-            if (current.activatedRemoteRandomMovementDirection) {
-                game.activateRandomMovementAbility(
-                    current.playerState.id,
-                    current.mazeKey,
-                );
-                return;
-            }
+            if (current.additionalData) {
+                const {
+                    activatedRemoteRandomMovementDirection,
+                    changedMazeMapCells,
+                } = current.additionalData;
 
-            if (current.changedMazeMapCells?.length) {
-                game.changeMazeMap(
-                    current.playerState.id,
-                    current.mazeKey,
-                    current.changedMazeMapCells,
-                );
+                if (activatedRemoteRandomMovementDirection) {
+                    game.activateRandomMovementAbility(
+                        current.playerState.id,
+                        current.mazeKey,
+                    );
+                    return;
+                }
+
+                if (changedMazeMapCells?.length) {
+                    game.changeMazeMap(
+                        current.playerState.id,
+                        current.mazeKey,
+                        changedMazeMapCells,
+                    );
+                    return;
+                }
                 return;
             }
 

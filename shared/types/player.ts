@@ -19,24 +19,24 @@ export interface IPlayerState {
     sizePx: number;
 }
 
-export interface AdditionalData {
+export interface RequestAdditionalData {
     changedMazeMapCells?: ChangedMazeMapCells;
     activatedRemoteRandomMovementDirection?: boolean;
 }
 export interface IWsPlayerRequest {
     playerState: IPlayerState;
     mazeKey: string;
-    // TODO: занести в общий тип
-    additionalData?: AdditionalData;
+    additionalData?: RequestAdditionalData;
 }
+
+export type ResponseAdditionalData = Omit<
+    RequestAdditionalData,
+    'activatedRemoteRandomMovementDirection'
+>;
 export interface IWsPlayerResponse {
     player: IPlayerState;
     type: PlayerEventType | MazeEventType;
-    changedMazeMapCells?: ChangedMazeMapCells;
-    // additionalData?: Omit<
-    //     AdditionalData,
-    //     'activatedRemoteRandomMovementDirection'
-    // >;
+    additionalData?: ResponseAdditionalData;
 }
 
 export type MovementDirection = 'Left' | 'Down' | 'Right' | 'Up';

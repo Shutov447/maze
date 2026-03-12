@@ -9,6 +9,7 @@ import {
     MovementDirection,
     PlayerEvent,
     PlayerEventType,
+    ResponseAdditionalData,
 } from '@shared/types';
 import { MazeController } from '@client/maze';
 import {
@@ -35,12 +36,16 @@ export class RemotePlayersManager implements IObserver {
     async update(
         subject: ISubject,
         event: INotifyEvent,
-        data?: { changedMazeMapCells?: ChangedMazeMapCells },
+        data?: ResponseAdditionalData,
     ) {
         if (event instanceof PlayerEvent)
             await this.handlePlayerEvent(subject, event.type);
         else if (event instanceof MazeEvent && data?.changedMazeMapCells)
-            this.handleMazeEvent(event.type, data?.changedMazeMapCells);
+            this.handleMazeEvent(
+                subject,
+                event.type,
+                data?.changedMazeMapCells,
+            );
     }
 
     private async handlePlayerEvent(subject: ISubject, type: PlayerEventType) {
@@ -99,9 +104,12 @@ export class RemotePlayersManager implements IObserver {
     }
 
     private handleMazeEvent(
+        subject: ISubject,
         type: MazeEventType,
         changedMazeMapCells: ChangedMazeMapCells,
     ) {
+        if (!(subject instanceof GameService)) return;
+
         switch (type) {
             case MazeEventType.ChangeCellState:
                 this.onMazeChangedMazeMapCells(changedMazeMapCells);

@@ -111,7 +111,7 @@ class Game {
             {
                 player,
                 type: MazeEventType.ChangeCellState,
-                changedMazeMapCells: changes,
+                additionalData: { changedMazeMapCells: changes },
             },
             playerId,
         );
