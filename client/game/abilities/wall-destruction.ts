@@ -1,15 +1,57 @@
-import { Cell, InputHandlerObject, Passage } from '@shared/types';
+import {
+    Cell,
+    INotifyEvent,
+    InputHandlerObject,
+    IObserver,
+    ISubject,
+    Passage,
+    PlayerEvent,
+    PlayerEventType,
+} from '@shared/types';
 import { MazeController } from '@client/maze';
 import { ControlledPlayerController } from '@client/controlled-player';
-import { GameService, IAbility } from '@client/game';
+import { GameService, IAbility, RendererAbilityInfo } from '@client/game';
 
-export class WallDestructionAbility implements IAbility {
+export class WallDestructionAbility implements IAbility, IObserver {
     constructor(
         private readonly maze: MazeController,
         private readonly player: ControlledPlayerController,
+        private readonly elemIdToRenderInfo: string,
         private readonly gameService: GameService,
         readonly cooldownTimeMs: number,
-    ) {}
+    ) {
+        player.attach(this);
+    }
+
+    update(subject: ISubject, event: INotifyEvent) {
+        if (
+            subject instanceof ControlledPlayerController &&
+            event instanceof PlayerEvent
+        ) {
+            switch (event.type) {
+                case PlayerEventType.Generate:
+                    this.onGenerate();
+                    break;
+                case PlayerEventType.Delete:
+                    this.onDelete();
+                    break;
+            }
+        }
+    }
+    onGenerate() {
+        this.showInfo();
+    }
+    showInfo() {
+        RendererAbilityInfo.render(
+            this.elemIdToRenderInfo,
+            `Вы можете сломать стены вокруг себя. Радиус разрушения стен: 1 клетка.
+            Повторное использование будет доступно через ${this.cooldownTimeMs / 1000} сек.`,
+        );
+    }
+    onDelete() {
+        this.player.detach(this);
+        RendererAbilityInfo.reset(this.elemIdToRenderInfo);
+    }
 
     getInputHandlerObject() {
         return this.handlerObject;

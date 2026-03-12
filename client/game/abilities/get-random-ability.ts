@@ -18,6 +18,7 @@ export const getRandomAbility = (
     mainMovementHandlerObject: InputHandlerObject,
     changeTimeMs: number,
     cooldownTimeMs: number,
+    elemIdToRenderInfo: string,
 ) => {
     const specialAbilityIndex = Math.floor(Math.random() * abilities.length);
     const SpecialAbility = abilities[specialAbilityIndex];
@@ -26,6 +27,7 @@ export const getRandomAbility = (
             return new SpecialAbility(
                 maze,
                 player,
+                elemIdToRenderInfo,
                 mainMovementHandlerObject,
                 changeTimeMs,
                 gameService,
@@ -35,6 +37,7 @@ export const getRandomAbility = (
             return new SpecialAbility(
                 maze,
                 player,
+                elemIdToRenderInfo,
                 gameService,
                 cooldownTimeMs,
             );

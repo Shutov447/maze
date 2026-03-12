@@ -9,7 +9,7 @@ import {
 } from '@shared/types';
 import { MazeController } from '@client/maze';
 import { ControlledPlayerController } from '@client/controlled-player';
-import { IAbility, MovementAbility } from '@client/game';
+import { IAbility, MovementAbility, RendererAbilityInfo } from '@client/game';
 
 export class RandomMovementAbility
     extends MovementAbility
@@ -29,14 +29,16 @@ export class RandomMovementAbility
     constructor(
         protected override readonly maze: MazeController,
         protected override readonly player: ControlledPlayerController,
+        protected override readonly elemIdToRenderInfo: string,
         protected readonly mainMovementHandlerObject: InputHandlerObject,
         protected readonly changeTimeMs: number,
     ) {
-        super(maze, player);
-        player.attach(this);
+        super(maze, player, elemIdToRenderInfo);
     }
 
-    update(subject: ISubject, event: INotifyEvent) {
+    override update(subject: ISubject, event: INotifyEvent) {
+        super.update(subject, event);
+
         if (
             subject instanceof ControlledPlayerController &&
             event instanceof PlayerEvent
@@ -45,18 +47,23 @@ export class RandomMovementAbility
                 case PlayerEventType.Win:
                     this.onWin();
                     break;
-                case PlayerEventType.Delete:
-                    this.onDelete();
-                    break;
             }
         }
     }
     onWin() {
         this.onDelete();
     }
-    onDelete() {
+    override onDelete() {
+        super.onDelete();
+
         clearTimeout(this.changeMovementTimerId);
-        this.player.detach(this);
+    }
+    override showInfo() {
+        RendererAbilityInfo.render(
+            this.elemIdToRenderInfo,
+            `Вы можете случайным образом изменить направления ваших движений на ${this.changeTimeMs / 1000} сек.
+            Повторное использование будет доступно через ${this.changeTimeMs / 1000} сек.`,
+        );
     }
 
     private readonly movementHandlerObject: InputHandlerObject = [

@@ -5,3 +5,4 @@ export * from './movement.ts';
 export * from './random-movement.ts';
 export * from './remote-players-random-movement.ts';
 export * from './helper-remote-players-random-movement.ts';
+export * from './renderer-ability-info.ts';

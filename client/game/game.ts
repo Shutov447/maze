@@ -64,34 +64,38 @@ export class Game implements IObserver {
         }
     }
     async onMazeGenerate() {
+        const elemIdToRenderInfo = 'ability-info-container';
+
         const movement = new MovementAbility(
             this.maze,
             this.player,
+            elemIdToRenderInfo,
         ).getInputHandlerObject();
 
+        const changeMovementTimeMs = 7000;
+        new HelperRemotePlayersRandomMovement(
+            this.maze,
+            this.player,
+            elemIdToRenderInfo,
+            movement,
+            changeMovementTimeMs,
+            this.service,
+        );
         const specialAbility = getRandomAbility(
             [RemotePlayersRandomMovementAbility, WallDestructionAbility],
             this.maze,
             this.player,
             this.service,
             movement,
-            7000,
-            10000,
-        );
-        if (!specialAbility) return;
+            changeMovementTimeMs,
+            20000,
+            elemIdToRenderInfo,
+        )!;
 
         await this.player.create(
             this.maze.getRandomPassageCell(),
             this.maze.getState().cellSizePx,
             [movement, specialAbility.getInputHandlerObject()],
-        );
-
-        new HelperRemotePlayersRandomMovement(
-            this.maze,
-            this.player,
-            movement,
-            7000,
-            this.service,
         );
     }
 

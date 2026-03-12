@@ -15,11 +15,18 @@ export class HelperRemotePlayersRandomMovement extends RandomMovementAbility {
     constructor(
         protected override readonly maze: MazeController,
         protected override readonly player: ControlledPlayerController,
+        protected override readonly elemIdToRenderInfo: string,
         protected override readonly mainMovementHandlerObject: InputHandlerObject,
         protected override readonly changeTimeMs: number,
         protected readonly gameService: GameService,
     ) {
-        super(maze, player, mainMovementHandlerObject, changeTimeMs);
+        super(
+            maze,
+            player,
+            elemIdToRenderInfo,
+            mainMovementHandlerObject,
+            changeTimeMs,
+        );
         player.attach(this);
         gameService.attach(this);
     }
@@ -52,4 +59,5 @@ export class HelperRemotePlayersRandomMovement extends RandomMovementAbility {
         this.player.detach(this);
         this.gameService.detach(this);
     }
+    override showInfo() {}
 }

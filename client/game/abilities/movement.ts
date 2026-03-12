@@ -1,13 +1,53 @@
-import { InputHandlerObject, MovementDirection } from '@shared/types';
+import {
+    INotifyEvent,
+    InputHandlerObject,
+    IObserver,
+    ISubject,
+    MovementDirection,
+    PlayerEvent,
+    PlayerEventType,
+} from '@shared/types';
 import { MazeController } from '@client/maze';
 import { ControlledPlayerController } from '@client/controlled-player';
-import { IAbility } from '@client/game';
+import { IAbility, RendererAbilityInfo } from '@client/game';
 
-export class MovementAbility implements IAbility {
+export class MovementAbility implements IAbility, IObserver {
     constructor(
         protected readonly maze: MazeController,
         protected readonly player: ControlledPlayerController,
-    ) {}
+        protected readonly elemIdToRenderInfo: string,
+    ) {
+        player.attach(this);
+    }
+
+    update(subject: ISubject, event: INotifyEvent) {
+        if (
+            subject instanceof ControlledPlayerController &&
+            event instanceof PlayerEvent
+        ) {
+            switch (event.type) {
+                case PlayerEventType.Generate:
+                    this.onGenerate();
+                    break;
+                case PlayerEventType.Delete:
+                    this.onDelete();
+                    break;
+            }
+        }
+    }
+    onGenerate() {
+        this.showInfo();
+    }
+    showInfo() {
+        RendererAbilityInfo.render(
+            this.elemIdToRenderInfo,
+            'Вы можете передвигаться на расстояние одной клетки за одно нажатие кнопки стрелки.',
+        );
+    }
+    onDelete() {
+        this.player.detach(this);
+        RendererAbilityInfo.reset(this.elemIdToRenderInfo);
+    }
 
     protected readonly handlerObject: InputHandlerObject = [
         'keydown',
