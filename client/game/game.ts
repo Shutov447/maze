@@ -35,14 +35,19 @@ export class Game implements IObserver {
         this.service.attach(this.remotePlayersMgr);
     }
 
+    private startTrigger = true;
     async start(by: GenerateMazeBy, cellSizePx: number) {
+        if (!this.startTrigger) return;
         if (this.maze.getState().key === by) return;
+
+        this.startTrigger = false;
         if (this.maze.getState().key) {
             this.remotePlayersMgr.deleteAll();
             await this.deletePlayer();
         }
         this.maze.delete();
         await this.maze.create(by, cellSizePx);
+        this.startTrigger = true;
     }
 
     update(subject: ISubject, event: INotifyEvent) {
